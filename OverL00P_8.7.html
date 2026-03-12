@@ -1,0 +1,2840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OveR~L00P - Version 3.0.0 (English)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+            overflow: hidden;
+        }
+        
+        /* HEADER */
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        
+        /* UPLOAD OVERLAY */
+        #uploadOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .upload-box {
+            border: 3px dashed #667eea;
+            background: #f8f9ff;
+            padding: 50px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 500px;
+        }
+        .upload-box:hover { transform: scale(1.02); border-color: #764ba2; }
+        
+        /* MAIN LAYOUT */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* SIDEBAR (Controls & ROI List) */
+        .sidebar {
+            width: 350px;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            height: 100%;       /* Prend la hauteur du container */
+            max-height: 100%;   /* EMPÊCHE de pousser vers le bas */
+            overflow: hidden;   /* Obligatoire */
+        }}
+        
+        .sidebar-section { 
+            padding: 15px; 
+            border-bottom: 1px solid #e2e8f0; 
+            flex-shrink: 0;     /* Empêche les sections du haut de se compresser */
+        }}
+        .sidebar-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 10px; }
+        .sidebar-section:last-child {
+            flex: 1;            /* Prend tout l'espace restant */
+            display: flex;
+            flex-direction: column;
+            min-height: 0;      /* INDISPENSABLE pour activer le scroll enfant sur Chrome */
+            border-bottom: none;
+        }
+        /* MODE SWITCH */
+        .mode-switch { display: flex; background: #e2e8f0; border-radius: 6px; padding: 2px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 6px; border: none; background: transparent; cursor: pointer; font-size: 11px; border-radius: 4px; color: #64748b; font-weight: 600; transition: all 0.2s; }
+        .mode-btn.active { background: white; color: #667eea; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        /* CONTEXT SELECTOR */
+        .context-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .context-checkbox { display: none; }
+        .context-label {
+            padding: 5px 10px;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .context-checkbox:checked + .context-label {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        /* FEATURE FILTER */
+        .filter-row { margin-bottom: 8px; }
+        .filter-row label { display: block; font-size: 11px; margin-bottom: 3px; font-weight: 600; }
+        .filter-row select { width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; }
+        .filter-conditions { display: flex; gap: 10px; margin-top: 5px; }
+        .btn-apply { width: 100%; padding: 6px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; }
+        .btn-reset { width: 100%; padding: 6px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; }
+        
+        /* SECONDARY INPUT */
+        .secondary-upload {
+            background: #fff; border: 1px dashed #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-size: 11px; color: #64748b; margin-bottom: 10px;
+        }
+        .secondary-upload:hover { border-color: #667eea; color: #667eea; }
+        .status-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: #cbd5e1; }
+        .status-badge.ok { background: #10b981; }
+
+        /* ROI LIST */
+        .search-box input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 10px; }
+        .roi-container {
+            flex: 1; 
+            overflow-y: auto !important; /* Force l'apparition de la barre */
+            padding: 0 15px 15px 15px;
+            min-height: 0; 
+        }
+        .roi-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .roi-item:hover { border-color: #667eea; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .roi-item.selected { border-left: 4px solid #667eea; background: #f0fdfa; }
+        .roi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .roi-gene { font-weight: 700; font-size: 14px; color: #1e293b; }
+        .roi-id { font-size: 10px; color: #94a3b8; font-family: monospace; }
+        
+        /* CONTEXT BADGES */
+        .ctx-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .ctx-badge { font-size: 9px; padding: 2px 6px; border-radius: 10px; background: #e2e8f0; color: #475569; font-weight: 600; }
+        
+
+        /* MAIN CONTENT (Viz) */
+        .viz-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+        }
+        
+        .viz-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        .view-tabs { display: flex; gap: 15px; }
+        .view-tab { padding: 8px 16px; cursor: pointer; color: #64748b; font-weight: 600; border-bottom: 3px solid transparent; }
+        .view-tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .viz-controls { display: flex; gap: 10px; }
+
+        /* --- AJOUT v6.3 : Layout Split --- */
+        .viz-split {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+        .viz-main {
+            flex: 3; /* L'alluvial prend 75% */
+            min-width: 600px;
+        }
+        .viz-side {
+            flex: 1; /* Le barplot prend 25% */
+            min-width: 400px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Switch Button Style */
+        .switch-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* SUMMARY BOX */
+        .summary-box {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 10px; }
+        .summary-item { background: white; padding: 10px; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .summary-val { display: block; font-size: 18px; font-weight: 700; color: #334155; }
+        .summary-lbl { font-size: 11px; color: #64748b; text-transform: uppercase; }
+
+        /* VIZ CONTAINERS */
+        .svg-container { display: flex; justify-content: center; margin-bottom: 30px; }
+        .feature-table-container { margin-top: 20px; }
+        
+        /* HEATMAP TABLE */
+        .heatmap-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .heatmap-table th { background: #f8fafc; padding: 8px; text-align: center; border: 1px solid #e2e8f0; position: sticky; top: 0; }
+        .heatmap-table td { border: 1px solid #e2e8f0; padding: 6px; text-align: center; position: relative; }
+        .heatmap-table td:first-child { text-align: left; font-weight: 600; background: #fff; position: sticky; left: 0; z-index: 10; }
+        .hm-bar { position: absolute; top: 2px; bottom: 2px; left: 2px; background: #667eea; opacity: 0.3; z-index: 0; border-radius: 2px; }
+        .hm-val { position: relative; z-index: 1; font-weight: 600; }
+
+        /* SVG STYLES */
+        text { font-family: sans-serif; }
+        .node-rect { fill: #1e293b; rx: 4; }
+        
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body>
+
+    <div id="uploadOverlay">
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size: 48px; margin-bottom: 15px;">📂</div>
+            <h3 style="margin-bottom: 10px; color: #333;">Load Combined Table (ROI)</h3>
+            <p style="color: #666; font-size: 13px;">Expected format: TSV with roi_id, Context, Condition, overlap_*, etc.</p>
+            <input type="file" id="fileInput" accept=".csv,.tsv,.txt" style="display: none;" onchange="handleFileUpload(event)">
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🧬 OveR~L00P <span style="font-size: 12px; opacity: 0.8; font-weight: normal; margin-left: 10px;">| V3.0.0 Univers is Looping ~ Control Everything</span></h1>
+            <button onclick="location.reload()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Reload</button>
+        </div>
+
+        <div class="main-layout">
+            
+            <div class="sidebar">
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">DEG DATA (For Network)</div>
+                    <div class="secondary-upload" onclick="document.getElementById('degInput').click()">
+                        <span id="degStatus" class="status-badge"></span>
+                        <span id="degText">Load DEGs (TSV)</span>
+                        <input type="file" id="degInput" accept=".csv,.tsv,.txt" style="display: none;" onchange="handleDEGUpload(event)">
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-title">CONTEXT LOGIC</div>
+                    
+                    <div class="mode-switch">
+                        <button id="btnAdditive" class="mode-btn active" onclick="setContextMode('additive')">Additive (OR)</button>
+                        <button id="btnIntersect" class="mode-btn" onclick="setContextMode('intersect')">Intersection (AND)</button>
+                    </div>
+
+                    <div class="sidebar-title" style="margin-top: 15px;">CONTEXT(S)</div>
+                    <div id="contextFilters" class="context-grid">
+                        <div style="font-size: 12px; color: #999;">Load a file...</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-title">DIR PER ROI RANGE</div>
+                    <div style="padding: 10px 0;">
+                        <label style="font-size: 12px; color: #64748b;">Min: <span id="valMin">1</span></label>
+                        <input type="range" id="dirMinRange" min="1" value="1" step="1" style="width:100%" oninput="updateRangeUI()">
+                        
+                        <label style="font-size: 12px; color: #64748b; margin-top:10px; display:block;">Max: <span id="valMax">1</span></label>
+                        <input type="range" id="dirMaxRange" min="1" value="1" step="1" style="width:100%" oninput="updateRangeUI()">
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">FIX A FEATURE</div>
+                    <div class="filter-row">
+                        <select id="featureSelect">
+                            <option value="">-- None --</option>
+                        </select>
+                    </div>
+                    <div class="filter-row">
+                        <label>Required conditions (TRUE):</label>
+                        <div class="filter-conditions" id="dynamicConditionFilters"></div>
+                    </div>
+                    <div class="filter-row">
+                            <label>Filter value:</label>
+                            <div class="mode-switch" style="margin-top: 5px;">
+                                <button id="btnFilterTrue" class="mode-btn active" onclick="setFilterValue(true)">TRUE</button>
+                                <button id="btnFilterFalse" class="mode-btn" onclick="setFilterValue(false)">FALSE</button>
+                            </div>
+                        </div>
+                    <button class="btn-apply" onclick="applyFilters()">Apply Filters</button>
+                    <button class="btn-reset" onclick="resetFilters()">Reset</button>
+                    <div id="activeFilterDisplay" style="margin-top: 10px; font-size: 11px; color: #ef4444; font-weight: bold; display: none;"></div>
+                </div>
+
+                <div class="sidebar-section" style="border-bottom: none; flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                    <div class="sidebar-title">ROI LIST (<span id="roiCount">0</span>)</div>
+                    <div class="search-box">
+                        <input type="text" id="geneSearch" placeholder="🔍 Search gene..." onkeyup="filterROIList()">
+                    </div>
+                    <div id="roiList" class="roi-container">
+                        </div>
+                </div>>
+            </div>
+
+            <div class="viz-area">
+                <div class="viz-header">
+                    <div class="view-tabs">
+                        <div class="view-tab active" onclick="switchView('global')" id="tabGlobal">Global View</div>
+                        <div class="view-tab" onclick="switchView('single')" id="tabSingle">Individual ROI View</div>
+                    </div>
+                    <div class="viz-controls">
+                        <button id="btnNetwork" onclick="openNetworkWindow()" style="background: #8b5cf6; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; display:none;">🌐 Network View</button>
+                        <div style="width:1px; background:#e2e8f0; margin:0 5px;"></div>
+                        <button onclick="exportExcel()" style="background: #3b82f6; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">📊 Export Excel</button>
+                        <button onclick="exportSVG()" style="background: #10b981; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">📷 Export SVG</button>
+                        <button class="btn btn-secondary" style="background:#f5d376; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;" onclick="openVennWindow()">Venn Diagram</button>
+                        <button id="btnGO" onclick="runGOAnalysis()" style="background: #ec4899; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">📊 GO Analysis</button>
+                    </div>
+                </div>
+                <button class="nav-btn" onclick="showSection('dpsi-correlations')">
+                    <span class="icon">📊</span> dPSI Correlations
+                </button>
+
+                <section id="dpsi-correlations" class="section-view" style="display:none; height: 100%; flex-direction: column;">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                        <div>
+                            <h2 style="margin:0;">Cross-Context dPSI Analysis</h2>
+                            <button id="toggleMetric" class="action-btn" onclick="toggleDPSIMetric()" style="margin-top:5px;">Using: mean_dPSI</button>
+                        </div>
+                        <button onclick="closeDpsiSection()" style="padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">✕ Close</button>
+                    </div>
+
+                    <div style="display: flex; flex: 1; overflow: hidden;">
+                        <aside style="width: 250px; border-right: 1px solid #e2e8f0; padding: 20px; overflow-y: auto; background: #fff;">
+                            <h3 style="font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 15px;">Available Contexts</h3>
+                            <div id="context-checkboxes" class="checkbox-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                </div>
+                        </aside>
+
+                        <main id="plots-container" style="flex: 1; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; overflow-y: auto; background: #f1f5f9; align-content: start;">
+                            <div style="color: #64748b; grid-column: 1/-1; text-align: center; padding: 40px;">
+                                Select at least 2 contexts to display correlations.
+                            </div>
+                        </main>
+                    </div>
+                </section>
+                <div id="viewGlobal" style="display: block;">
+                    <div class="summary-box">
+                        <h4 style="margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">📊 Global Summary</h4>
+                        <div class="summary-grid" id="globalStatsGrid"></div>
+                    </div>
+
+                    <div class="viz-split">
+                        <div class="viz-main">
+                            <div id="globalAlluvial" class="svg-container"></div>
+                        </div>
+
+                        <div class="viz-side">
+                            <div class="switch-wrapper">
+                                <span>Region Count</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="bpSwitch" onchange="renderGlobalView()">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>bp Proportion</span>
+                            </div>
+                            
+                            <div id="partitionContainer" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                                
+                                <div id="partitionPlot" style="width: 100%;"></div>
+
+                                <button onclick="exportPartitionSVG()" style="font-size: 11px; cursor: pointer; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 12px; color: #475569; display: flex; align-items: center; gap: 5px; transition: all 0.2s hover {background: #f8fafc;}">
+                                    📷 Export Distribution (SVG)
+                                </button>
+                            </div>
+                            <div id="dynamicsPieContainer" 
+                             style="margin-top:20px; background:#f1f5f9; border:1px solid #e2e8f0; 
+                                    border-radius:8px; padding:15px; display:flex; flex-direction:column; align-items:center;">
+                            
+                            <div style="font-weight:600; margin-bottom:10px;">
+                                Dynamic Proportions
+                            </div>
+
+                            <canvas id="dynamicsPieChart" width="350" height="350"></canvas>
+                            <button onclick="exportPieSVG()" 
+                                style="font-size:11px; margin-top:10px; cursor:pointer;
+                                       background:#fff; border:1px solid #cbd5e1; 
+                                       border-radius:4px; padding:4px 12px;">
+                            📷 Export Pie (SVG)
+                        </button>
+                        </div>
+                        </div>
+                    </div>
+
+                    <div id="globalFeatures" class="feature-table-container"></div>
+                </div>
+
+                <div id="viewSingle" style="display: none;">
+                    <div id="singleVizContent">
+                        <div style="text-align: center; color: #94a3b8; margin-top: 50px;">Select an ROI from the list</div>
+                    </div>
+                    <div id="singleFeatures" class="feature-table-container"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- GLOBAL STATE ---
+let rawData = []; 
+let processedData = []; 
+let roiMap = new Map(); 
+let roiContextsMap = new Map(); 
+let allContexts = new Set();
+let allFeatures = [];
+let selectedContexts = new Set(); 
+let contextMode = 'additive'; 
+let selectedROI = null;
+let currentView = 'global';
+let degData = []; 
+let filterValue = true;
+let CONDITIONS = [];
+let currentDirRange = { min: 1, max: 999 };
+let loopPatterns = new Map(); // distalKey -> "1-0-1" string
+let currentDPSIMetric = 'mean_dPSI';
+let dynamicsPieInstance = null;
+// NOUVEAU : Palette fixe et Map globale pour garantir des couleurs uniques
+const COLOR_PALETTE = [
+    'rgba(30, 64, 175, 0.7)',   // Bleu foncé
+    'rgba(225, 41, 37, 0.8)',   // Rouge vif
+    'rgba(79, 15, 84, 0.5)',    // Violet foncé
+    'rgba(16, 185, 129, 0.5)',  // Vert émeraude
+    'rgba(245, 158, 11, 0.5)',  // Orange/Jaune
+    'rgba(59, 130, 246, 0.5)',  // Bleu clair
+    'rgba(239, 68, 68, 0.5)',   // Rouge clair
+    'rgba(154, 52, 18, 0.5)',   // Marron/Rouille
+    'rgba(249, 115, 22, 0.5)',  // Orange vif
+    'rgba(6, 182, 212, 0.5)',   // Cyan
+    'rgba(132, 204, 22, 0.5)',  // Citron vert
+    'rgba(168, 85, 247, 0.5)',  // Violet clair
+    'rgba(236, 3, 131, 0.5)',  // Rose
+    'rgba(99, 102, 241, 0.5)'   // Indigo
+];
+let contextColorMap = new Map();
+
+let FLOW_DEFS = [];
+
+// --- 1. DATA LOADING & PARSING ---
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        parseData(e.target.result);
+        document.getElementById('uploadOverlay').style.display = 'none';
+        initApp();
+    };
+    reader.readAsText(file);
+}
+
+function handleDEGUpload(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        parseDEG(e.target.result);
+
+        if (!degData || degData.length === 0) {
+            alert("No valid DEGs found in file");
+            return;
+        }
+
+        const hasContexts = degData.some(d => d.context && d.context !== 'Unknown');
+        if (!hasContexts) {
+            alert("No valid contexts found in DEG data");
+            return;
+        }
+
+        const badge = document.getElementById('degStatus');
+        const txt = document.getElementById('degText');
+        const btn = document.getElementById('btnNetwork');
+
+        if (badge) badge.classList.add('ok');
+        if (txt) {
+            txt.textContent = `DEGs OK (${degData.length})`;
+            txt.style.color = '#10b981';
+        }
+        if (btn) btn.style.display = 'block';
+
+        displayDEGContextSelector(degData);
+        initApp();
+    };
+    reader.readAsText(file);
+}
+
+function displayDEGContextSelector(degData) {
+    let container = document.getElementById('degContextSelector');
+    if (container) container.remove();
+
+    container = document.createElement('div');
+    container.id = 'degContextSelector';
+    container.style.marginTop = '10px';
+    container.style.padding = '8px';
+    container.style.background = '#f8fafc';
+    container.style.borderRadius = '4px';
+    container.style.border = '1px solid #e2e8f0';
+
+    const degUploadBox = document.querySelector('.secondary-upload');
+    if (!degUploadBox) return;
+    degUploadBox.appendChild(container);
+
+    const degContexts = [...new Set(degData.map(d => d.context).filter(c => c && c !== 'Unknown'))];
+
+    let html = '<div style="font-size: 12px; margin-bottom: 8px; font-weight: 600;">DEG Contexts:</div>';
+
+    degContexts.forEach(ctx => {
+        const safeId = `deg_ctx_${ctx.replace(/\s+/g, '_')}`;
+        html += `
+        <div style="margin-bottom: 5px; display: flex; align-items: center;">
+            <input type="checkbox" id="${safeId}" value="${ctx}" checked onchange="updateSelectedDEGContexts(event)" onclick="event.stopPropagation()" style="margin-right: 5px;">
+            <label for="${safeId}" style="font-size: 11px; cursor: pointer;">${ctx}</label>
+        </div>`;
+    });
+
+    html += `
+    <div style="margin-top: 10px;">
+        <button onclick="document.getElementById('degInput').click()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;">Reload DEGs</button>
+    </div>`;
+
+    container.innerHTML = html;
+    window.selectedDEGContexts = new Set(degContexts);
+}
+
+function updateSelectedDEGContexts(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    window.selectedDEGContexts = new Set();
+    document.querySelectorAll('#degContextSelector input:checked').forEach(cb => {
+        window.selectedDEGContexts.add(cb.value);
+    });
+    return false;
+}
+
+function parseDEG(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split('\t').map(h => h.trim());
+    
+    const idx = {
+        gene: headers.indexOf('geneSymbol'),
+        chr: headers.indexOf('DEG_chr'),
+        start: headers.indexOf('DEG_start'),
+        end: headers.indexOf('DEG_end'),
+        ctx: headers.findIndex(h => h.includes('Context') || h.includes('Condition') || h.includes('Context2')),
+        d_chr: headers.indexOf('distal_chr'),
+        d_start: headers.indexOf('distal_start'),
+        d_end: headers.indexOf('distal_end')
+    };
+    
+    if(idx.gene === -1 || idx.chr === -1 || idx.start === -1) {
+        alert("Invalid format: 'geneSymbol', 'DEG_chr', 'DEG_start' columns required.");
+        return;
+    }
+
+    degData = lines.slice(1).map(line => {
+        const cols = line.split('\t');
+        if(cols.length < headers.length) return null;
+        
+        let dStart = parseInt(cols[idx.d_start]);
+        let dEnd = parseInt(cols[idx.d_end]);
+        let dChr = cols[idx.d_chr]?.trim();
+
+        return {
+            gene: cols[idx.gene]?.trim(),
+            chr: cols[idx.chr]?.trim(),
+            start: parseInt(cols[idx.start]),
+            end: parseInt(cols[idx.end]),
+            context: (idx.ctx !== -1) ? cols[idx.ctx]?.trim() : 'Unknown',
+            distal_chr: (dChr && dChr !== "" && !isNaN(dStart)) ? dChr : null,
+            distal_start: isNaN(dStart) ? null : dStart,
+            distal_end: isNaN(dEnd) ? null : dEnd
+        };
+    }).filter(x => x && !isNaN(x.start));
+}
+
+function parseData(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split('\t').map(h => h.trim());
+    
+    const idx = {
+        roi: headers.indexOf('roi_id'),
+        gene: headers.indexOf('geneSymbol'),
+        cond: headers.indexOf('Condition'),
+        ctx: headers.indexOf('Context'),
+        chr: headers.indexOf('distal_chr'),
+        start: headers.indexOf('distal_start'),
+        end: headers.indexOf('distal_end'),
+        mean_dPSI: headers.indexOf('mean_dPSI'),
+        max_dPSI: headers.indexOf('max_dPSI'),
+        partitionBP: headers.findIndex(h => h.includes('Genomic_Partition')),
+        partitionDefault: headers.indexOf('genomic_partition_distal')
+    };
+
+    allFeatures = headers.filter(h => h.startsWith('overlap_'));
+    allContexts = new Set();
+    roiContextsMap = new Map();
+    
+    const tempRows = [];
+    const conditionSet = new Set();
+
+    lines.slice(1).forEach(line => {
+        const cols = line.split('\t');
+        if(cols.length < headers.length) return;
+        
+        const cond = cols[idx.cond]?.trim();
+        if(cond) conditionSet.add(cond);
+        
+        const s = parseInt(cols[idx.start]);
+        const e = parseInt(cols[idx.end]);
+        const len = (!isNaN(s) && !isNaN(e)) ? Math.abs(e - s) : 5000;
+        const mDpsi = parseFloat(cols[idx.mean_dPSI]);
+        const xDpsi = parseFloat(cols[idx.max_dPSI]);
+
+        const obj = {
+            roi_id: cols[idx.roi],
+            gene: cols[idx.gene],
+            Condition: cond,
+            Context: cols[idx.ctx],
+            distal_chr: cols[idx.chr],
+            distal_start: s,
+            distal_end: e,
+            distalKey: `${cols[idx.chr]}:${cols[idx.start]}-${cols[idx.end]}`,
+            length: len,
+            mean_dPSI: isNaN(mDpsi) ? null : mDpsi,
+            max_dPSI: isNaN(xDpsi) ? null : xDpsi,
+            partBP: cols[idx.partitionBP] ? cols[idx.partitionBP].trim() : "Distal Intergenic",
+            partDef: cols[idx.partitionDefault] ? cols[idx.partitionDefault].trim() : "Distal Intergenic"
+        };
+
+        allFeatures.forEach(f => {
+             const colIndex = headers.indexOf(f);
+             const val = cols[colIndex]?.trim();
+             obj[f] = (val === 'TRUE' || val === 'true');
+        });
+        
+        if (obj.Context) allContexts.add(obj.Context);
+        if (!roiContextsMap.has(obj.roi_id)) roiContextsMap.set(obj.roi_id, new Set());
+        roiContextsMap.get(obj.roi_id).add(obj.Context);
+        
+        if (obj.roi_id && obj.Condition) tempRows.push(obj);
+    });
+
+    CONDITIONS = Array.from(conditionSet).sort().slice(0, 5);
+    generateDynamicFlowDefs();
+
+    // [MODIF] Compute Max DIR per ROI global on complete rawData
+    const globalCounts = new Map();
+    tempRows.forEach(r => {
+        if(!globalCounts.has(r.roi_id)) globalCounts.set(r.roi_id, new Set());
+        globalCounts.get(r.roi_id).add(r.distalKey);
+    });
+    window.absoluteMaxDir = Math.max(...Array.from(globalCounts.values()).map(s => s.size), 1);
+
+    rawData = tempRows;
+    selectedContexts = new Set(allContexts);
+}
+
+function generateDynamicFlowDefs() {
+    FLOW_DEFS = [];
+    const n = CONDITIONS.length;
+    // Génère 2^n combinaisons
+    const totalCombos = 1 << n; // 2 puissance n
+
+    for (let i = totalCombos - 1; i >= 0; i--) { // On commence par tout à 1 (Maintained)
+        let binaryString = i.toString(2).padStart(n, '0');
+        // pattern ex: "1-0-1"
+        let pattern = binaryString.split('').join('-');
+        
+        // Logique de couleur et nom simple
+        let label = "Pattern " + pattern;
+        let color = "#94a3b8"; // Gris par défaut
+
+        // Same flows as hard encoded for 3 Dynamic flows
+        if (n === 3) {
+             if (pattern === '1-1-1') { label = 'Maintained'; color = '#10b981'; }
+             else if (pattern === '1-1-0') { label = 'Lost Late'; color = '#f59e0b'; }
+             else if (pattern === '1-0-1') { label = 'Dyn. I (Loss/Regain)'; color = '#ed11db'; }
+             else if (pattern === '1-0-0') { label = 'Lost Early'; color = '#ef4444'; }
+             else if (pattern === '0-1-1') { label = 'Gained Early'; color = '#3b82f6'; }
+             else if (pattern === '0-1-0') { label = 'Transient'; color = '#f97316'; }
+             else if (pattern === '0-0-1') { label = 'Gained Late'; color = '#8b5cf6'; }
+             else { label = 'Absent'; color = '#e2e8f0'; }
+        } else {
+            // Logique générique pour N conditions
+            const activeCount = binaryString.split('0').join('').length;
+            if (activeCount === 0) continue; // On ignore '0-0-0...'
+            if (activeCount === n) { label = "Constitutive"; color = "#10b981"; }
+            else if (binaryString.startsWith('1') && binaryString.endsWith('0')) { label = "Lost"; color = "#ef4444"; }
+            else if (binaryString.startsWith('0') && binaryString.endsWith('1')) { label = "Gained"; color = "#3b82f6"; }
+            else { label = "Dynamic"; color = "#8b5cf6"; }
+        }
+        
+        // On ne pousse pas le pattern '0-0-0'
+        if (pattern.includes('1')) {
+            FLOW_DEFS.push({ key: pattern.replace(/-/g, '_'), color: color, label: label, pattern: pattern });
+        }
+    }
+}
+
+// --- FONCTION CORRIGÉE : Utilise la map pour garantir la cohérence ---
+function getContextColor(ctx) {
+    if (!contextColorMap.has(ctx)) {
+        return '#cbd5e1'; // Gris par défaut si non trouvé
+    }
+    return contextColorMap.get(ctx);
+}
+
+function initApp() {
+    const ctxContainer = document.getElementById('contextFilters');
+    if (ctxContainer) {
+        ctxContainer.innerHTML = '';
+        const contexts = Array.from(allContexts).sort();
+        contextColorMap.clear();
+        contexts.forEach((ctx, index) => {
+            const color = COLOR_PALETTE[index % COLOR_PALETTE.length];
+            contextColorMap.set(ctx, color);
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <input type="checkbox" id="ctx_${ctx}" class="context-checkbox" value="${ctx}" checked onchange="handleContextChange()">
+                <label for="ctx_${ctx}" class="context-label ctx-badge" style="background-color: ${color};">${ctx}</label>
+            `;
+            ctxContainer.appendChild(div);
+        });
+    }
+
+    const condContainer = document.getElementById('dynamicConditionFilters');
+    if (condContainer) {
+        condContainer.innerHTML = '';
+        CONDITIONS.forEach(cond => {
+            const label = document.createElement('label');
+            label.style.display = "block";
+            label.style.fontSize = "11px";
+            label.innerHTML = `<input type="checkbox" class="cond-cb" value="${cond}"> ${cond}`;
+            condContainer.appendChild(label);
+        });
+    }
+
+    const featSelect = document.getElementById('featureSelect');
+    if (featSelect) {
+        featSelect.innerHTML = '<option value="">-- None --</option>';
+        allFeatures.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = f.replace('overlap_', '');
+            featSelect.appendChild(opt);
+        });
+    }
+
+    // [MODIF] Initialisation sécurisée du Range Slider
+    const sliderMin = document.getElementById('dirMinRange');
+    const sliderMax = document.getElementById('dirMaxRange');
+    const rangeLabel = document.getElementById('dirRangeVal');
+    
+    if (sliderMin && sliderMax) {
+        const maxVal = window.absoluteMaxDir || 1;
+        sliderMin.max = maxVal;
+        sliderMin.value = 1;
+        sliderMax.max = maxVal;
+        sliderMax.value = maxVal;
+        currentDirRange.min = 1;
+        currentDirRange.max = maxVal;
+        if (rangeLabel) rangeLabel.textContent = `1 - ${maxVal}`;
+    }
+
+    // [MODIF] Remplissage du sélecteur de dynamiques
+    const dynSelect = document.getElementById('dynamicsSelect');
+    if (dynSelect) {
+        dynSelect.innerHTML = '<option value="ALL">-- All Dynamics --</option>';
+        FLOW_DEFS.forEach(flow => {
+            const opt = document.createElement('option');
+            opt.value = flow.label;
+            opt.textContent = flow.label;
+            dynSelect.appendChild(opt);
+        });
+    }
+
+    applyFilters();
+}
+
+
+
+// --- 2. DATA PROCESSING & FILTERING ---
+
+function setContextMode(mode) {
+    contextMode = mode;
+    document.getElementById('btnAdditive').className = mode === 'additive' ? 'mode-btn active' : 'mode-btn';
+    document.getElementById('btnIntersect').className = mode === 'intersect' ? 'mode-btn active' : 'mode-btn';
+    applyFilters();
+}
+
+
+function handleContextChange() {
+    selectedContexts.clear();
+    document.querySelectorAll('.context-checkbox:checked').forEach(cb => {
+        selectedContexts.add(cb.value);
+    });
+    applyFilters();
+}
+
+
+function resetFilters() {
+    document.getElementById('featureSelect').value = "";
+    document.querySelectorAll('.cond-cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.context-checkbox').forEach(cb => cb.checked = true);
+    setContextMode('additive');
+    handleContextChange();
+}
+
+function applyFilters() {
+    if (!rawData || rawData.length === 0) return;
+
+    const feat = document.getElementById('featureSelect')?.value;
+    const conds = Array.from(document.querySelectorAll('.cond-cb:checked')).map(cb => cb.value);
+    const selectedDyn = document.getElementById('dynamicsSelect')?.value || "ALL";
+
+    // 1. Filtrage Contextes
+    let baseFiltered = rawData.filter(r => {
+        if (contextMode === 'intersect') {
+            const roiCtxs = roiContextsMap.get(r.roi_id);
+            return Array.from(selectedContexts).every(c => roiCtxs.has(c));
+        } else {
+            return selectedContexts.has(r.Context);
+        }
+    });
+
+    // 2. [MODIF] Filtrage par Dynamique
+    if (selectedDyn !== "ALL") {
+        const dirPatterns = new Map();
+        // On calcule le pattern pour chaque DIR (distalKey) sur les données brutes
+        rawData.forEach(r => {
+            if (!dirPatterns.has(r.distalKey)) dirPatterns.set(r.distalKey, new Set());
+            dirPatterns.get(r.distalKey).add(r.Condition);
+        });
+
+        baseFiltered = baseFiltered.filter(r => {
+            const activeConds = dirPatterns.get(r.distalKey);
+            const pattern = CONDITIONS.map(c => activeConds.has(c) ? '1' : '0').join('-');
+            const flow = FLOW_DEFS.find(f => f.pattern === pattern);
+            return flow && flow.label === selectedDyn;
+        });
+    }
+
+    // 3. Filtrage par Feature
+    if (feat && conds.length > 0) {
+        const validKeys = new Set();
+        baseFiltered.forEach(row => {
+            if (conds.includes(row.Condition) && row[feat] === filterValue) {
+                validKeys.add(row.distalKey);
+            }
+        });
+        baseFiltered = baseFiltered.filter(row => validKeys.has(row.distalKey));
+    }
+
+    // 4. [MODIF] Filtrage par nombre de DIR par ROI
+    const countsPerROI = new Map();
+    baseFiltered.forEach(r => {
+        if (!countsPerROI.has(r.roi_id)) countsPerROI.set(r.roi_id, new Set());
+        countsPerROI.get(r.roi_id).add(r.distalKey);
+    });
+
+    processedData = baseFiltered.filter(r => {
+        const count = countsPerROI.get(r.roi_id)?.size || 0;
+        return count >= currentDirRange.min && count <= currentDirRange.max;
+    });
+
+    // Finalisation du rendu
+    rebuildROIMap();
+    updateROIList();
+    renderGlobalView();
+    if (selectedROI) renderSingleView();
+    if (document.getElementById('dpsi-correlations').style.display !== 'none') {
+        initContextSelector(); // Recharge les contextes dispos selon les filtres
+        updateCorrelationPlots(); // Redessine les plots
+    }
+}
+
+
+
+
+function setFilterValue(value) {
+    filterValue = value;
+    document.getElementById('btnFilterTrue').className = value ? 'mode-btn active' : 'mode-btn';
+    document.getElementById('btnFilterFalse').className = !value ? 'mode-btn active' : 'mode-btn';
+    applyFilters(); // Réappliquer les filtres avec la nouvelle valeur
+}
+
+function rebuildROIMap() {
+    roiMap.clear();
+    processedData.forEach(row => {
+        if (!roiMap.has(row.roi_id)) {
+            roiMap.set(row.roi_id, {
+                id: row.roi_id,
+                gene: row.gene,
+                contexts: new Set(),
+                rows: []
+            });
+        }
+        const obj = roiMap.get(row.roi_id);
+        obj.contexts.add(row.Context);
+        obj.rows.push(row);
+    });
+}
+
+function updateDirFilter() {
+    const sMin = document.getElementById('dirMinRange');
+    const sMax = document.getElementById('dirMaxRange');
+    const label = document.getElementById('dirRangeVal');
+    
+    let minV = parseInt(sMin.value);
+    let maxV = parseInt(sMax.value);
+
+    if (minV > maxV) {
+        minV = maxV;
+        sMin.value = minV;
+    }
+
+    currentDirRange.min = minV;
+    currentDirRange.max = maxV;
+    if (label) label.textContent = `${minV} - ${maxV}`;
+    
+    applyFilters();
+}
+
+function updateRangeUI() {
+    const sMin = document.getElementById('dirMinRange');
+    const sMax = document.getElementById('dirMaxRange');
+    
+    let minV = parseInt(sMin.value);
+    let maxV = parseInt(sMax.value);
+
+    // Sécurité : le Min ne peut pas dépasser le Max
+    if (minV > maxV) {
+        minV = maxV;
+        sMin.value = minV;
+    }
+
+    currentDirRange.min = minV;
+    currentDirRange.max = maxV;
+    
+    document.getElementById('valMin').textContent = minV;
+    document.getElementById('valMax').textContent = maxV;
+    
+    applyFilters();
+}
+
+function toggleDPSIMetric() {
+    currentDPSIMetric = currentDPSIMetric === 'mean_dPSI' ? 'max_dPSI' : 'mean_dPSI';
+    document.getElementById('toggleMetric').innerText = `Using: ${currentDPSIMetric}`;
+    updateCorrelationPlots();
+}
+// --- 3. EXCEL EXPORT ---
+
+function exportExcel() {
+    if (!processedData || processedData.length === 0) {
+        alert("No data to export.");
+        return;
+    }
+    const distalMap = {};
+    processedData.forEach(r => {
+        if(!distalMap[r.distalKey]) distalMap[r.distalKey] = new Set();
+        distalMap[r.distalKey].add(r.Condition);
+    });
+
+    const flowLabels = {};
+    Object.keys(distalMap).forEach(dk => {
+        const s = distalMap[dk];
+        const pattern = CONDITIONS.map(c => s.has(c)?'1':'0').join('-');
+        const def = FLOW_DEFS.find(f => f.pattern === pattern);
+        flowLabels[dk] = def ? def.label : 'Other';
+    });
+
+    const sheetsData = {};
+    CONDITIONS.forEach(c => sheetsData[c] = []);
+    processedData.forEach(row => {
+        const coordParts = row.distalKey.split(/[:-]/);
+        const rowData = {
+            'ROI_ID': row.roi_id,
+            'Gene': row.gene,
+            'Context': row.Context,
+            'DIR_Chr': coordParts[0],
+            'DIR_Start': parseInt(coordParts[1]),
+            'DIR_End': parseInt(coordParts[2]),
+            'Dynamics': flowLabels[row.distalKey] || 'Unknown'
+        };
+        allFeatures.forEach(f => {
+            rowData[f.replace('overlap_', '')] = row[f];
+        });
+        if (sheetsData[row.Condition]) {
+            sheetsData[row.Condition].push(rowData);
+        }
+    });
+
+    const wb = XLSX.utils.book_new();
+    for (const [sheetName, data] of Object.entries(sheetsData)) {
+        if (data.length > 0) {
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        }
+    }
+    XLSX.writeFile(wb, "DIR_Analysis_Export.xlsx");
+}
+
+// --- 4. VIZ RENDERING LOGIC (ALLUVIAL) ---
+
+function calculateFlowStats(dataSubset) {
+    const distalMap = {};
+    dataSubset.forEach(row => {
+        if (!distalMap[row.distalKey]) distalMap[row.distalKey] = new Set();
+        distalMap[row.distalKey].add(row.Condition);
+    });
+
+    const stats = {};
+    FLOW_DEFS.forEach(f => stats[f.key] = 0);
+    const counts = {};
+    CONDITIONS.forEach(c => counts[c] = 0);
+
+    Object.values(distalMap).forEach(condSet => {
+        CONDITIONS.forEach(c => { if(condSet.has(c)) counts[c]++; });
+        
+        const pat = CONDITIONS.map(c => condSet.has(c) ? '1' : '0').join('-');
+        const key = pat.replace(/-/g, '_'); // Pattern ex 1_0_1
+        
+        // Find matching flow definition (parfois le label diffère du key strict si vous utilisez des labels custom)
+        const flow = FLOW_DEFS.find(f => f.pattern === pat);
+        if(flow) stats[flow.key]++;
+    });
+    return { stats, counts, total: Object.keys(distalMap).length };
+}
+
+function renderAlluvialOriginalLogic(targetId, dataSubset, title) {
+    const container = document.getElementById(targetId);
+    if (!container || !CONDITIONS || CONDITIONS.length < 2) return;
+
+    // 1. Stats DIR-centric
+    const dirMap = new Map();
+    dataSubset.forEach(d => {
+        if(!dirMap.has(d.distalKey)) dirMap.set(d.distalKey, new Set());
+        dirMap.get(d.distalKey).add(d.Condition);
+    });
+
+    const patternCounts = {};
+    FLOW_DEFS.forEach(f => patternCounts[f.pattern] = 0);
+    const condCounts = {};
+    CONDITIONS.forEach(c => condCounts[c] = 0);
+
+    dirMap.forEach((condSet) => {
+        const pat = CONDITIONS.map(c => condSet.has(c) ? '1' : '0').join('-');
+        if (patternCounts[pat] !== undefined) {
+            patternCounts[pat]++;
+            CONDITIONS.forEach(c => { if(condSet.has(c)) condCounts[c]++; });
+        }
+    });
+
+    // 2. Setup Géo (800x650 comme demandé)
+    const width = 800, height = 650;
+    const margin = { top: 70, right: 150, bottom: 50, left: 150 };
+    const plotHeight = height - margin.top - margin.bottom;
+    const plotWidth = width - margin.left - margin.right;
+    const spacing = plotWidth / (CONDITIONS.length - 1);
+    const yVoid = margin.top + plotHeight + 40; 
+    const scale = plotHeight / Math.max(...Object.values(condCounts), 1);
+
+    // Ordre de stacking pour la reconnexion du flux rose (1-0-1)
+    const displayOrder = ["1-1-1", "0-1-1", "1-1-0", "0-1-0", "1-0-1", "1-0-0", "0-0-1"];
+    const colY = CONDITIONS.map(c => margin.top + (plotHeight - (condCounts[c] * scale)) / 2);
+    const currentY = [...colY];
+
+    // IDs critiques pour l'export
+    const svgId = (targetId === 'globalAlluvial') ? 'svg_main_globalAlluvial' : 'svg_main_singleAlluvial';
+    const exportAreaId = (targetId === 'globalAlluvial') ? 'table_export_area_globalAlluvial' : 'table_export_area_singleAlluvial';
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" id="${svgId}" style="background:white; font-family:sans-serif;">`;
+    svg += `<rect width="100%" height="100%" fill="white"/>`;
+    svg += `<text x="${width/2}" y="35" text-anchor="middle" font-size="20" font-weight="bold">${title}</text>`;
+
+    // 3. Dessin des flux
+    displayOrder.forEach(pat => {
+        const flow = FLOW_DEFS.find(f => f.pattern === pat);
+        if (!flow || patternCounts[pat] <= 0) return;
+        const h = patternCounts[pat] * scale;
+        const bits = pat.split('-');
+
+        for (let i = 0; i < CONDITIONS.length - 1; i++) {
+            const x1 = margin.left + (i * spacing), x2 = margin.left + ((i + 1) * spacing);
+            const activeL = bits[i] === '1', activeR = bits[i+1] === '1';
+
+            const ribbon = (xa, ya, ha, xb, yb) => {
+                const cx = xa + (xb - xa) * 0.5;
+                return `M ${xa+15} ${ya} C ${cx} ${ya}, ${cx} ${yb}, ${xb-15} ${yb} L ${xb-15} ${yb+ha} C ${cx} ${yb+ha}, ${cx} ${ya+ha}, ${xa+15} ${ya+ha} Z`;
+            };
+            const drop = (xa, ya, ha, xb) => {
+                const cx = xa + (xb - xa) * 0.5;
+                return `M ${xa+15} ${ya} C ${cx} ${ya}, ${cx} ${yVoid}, ${xb-15} ${yVoid} L ${xb-15} ${yVoid} C ${cx} ${yVoid}, ${cx} ${ya+ha}, ${xa+15} ${ya+ha} Z`;
+            };
+            const rise = (xa, xb, yb, ha) => {
+                const cx = xa + (xb - xa) * 0.5;
+                return `M ${xa+15} ${yVoid} C ${cx} ${yVoid}, ${cx} ${yb}, ${xb-15} ${yb} L ${xb-15} ${yb+ha} C ${cx} ${yb+ha}, ${cx} ${yVoid}, ${xa+15} ${yVoid} Z`;
+            };
+
+            let d = "";
+            if (activeL && activeR) d = ribbon(x1, currentY[i], h, x2, currentY[i+1]);
+            else if (activeL && !activeR) d = drop(x1, currentY[i], h, x2);
+            else if (!activeL && activeR) d = rise(x1, x2, currentY[i+1], h);
+
+            if (d) svg += `<path d="${d}" fill="${flow.color}" opacity="0.6" data-flow="${flow.key}"><title>${flow.label}: ${patternCounts[pat]}</title></path>`;
+        }
+        bits.forEach((bit, idx) => { if(bit === '1') currentY[idx] += h; });
+    });
+
+    // 4. Barres et Groupes
+    CONDITIONS.forEach((cond, i) => {
+        const x = margin.left + (i * spacing), bh = condCounts[cond] * scale, by = colY[i];
+        svg += `<rect x="${x-15}" y="${by}" width="30" height="${bh}" fill="#1e293b" rx="2"/>`;
+        svg += `<text x="${x}" y="${by-12}" text-anchor="middle" font-size="12" font-weight="bold">${cond}</text>`;
+        svg += `<text x="${x}" y="${by+bh+18}" text-anchor="middle" font-size="11" fill="#64748b">n=${condCounts[cond]}</text>`;
+    });
+
+    // Emplacement du tableau d'export (placé à 660px)
+    svg += `<g id="${exportAreaId}" transform="translate(20, ${height + 10})"></g>`;
+    svg += '</svg>';
+    
+    container.innerHTML = svg;
+
+    // Ré-attachement des interactions (mouseenter/mouseleave)
+    container.querySelectorAll('[data-flow]').forEach(el => {
+        el.onmouseenter = () => {
+            const f = el.getAttribute('data-flow');
+            container.querySelectorAll(`[data-flow="${f}"]`).forEach(p => p.setAttribute('opacity', '0.9'));
+        };
+        el.onmouseleave = () => {
+            const f = el.getAttribute('data-flow');
+            container.querySelectorAll(`[data-flow="${f}"]`).forEach(p => p.setAttribute('opacity', '0.6'));
+        };
+    });
+}
+
+function renderFeatures(targetId, dataSubset) {
+    if (allFeatures.length === 0) return;
+
+    // 1. Calcul dynamique des stats par feature et par flow
+    const stats = {};
+    FLOW_DEFS.forEach(f => stats[f.key] = 0);
+
+    // Mappage DistalKey -> Pattern dynamique
+    const distalToFlow = {};
+    const tempMap = {};
+    
+    // Grouper les conditions par Distal Key
+    dataSubset.forEach(r => {
+        if(!tempMap[r.distalKey]) tempMap[r.distalKey] = new Set();
+        tempMap[r.distalKey].add(r.Condition);
+    });
+
+    // Déterminer le Flow (Pattern) pour chaque Distal Key
+    Object.keys(tempMap).forEach(dk => {
+        const condSet = tempMap[dk];
+        // Génère le pattern ex: "1-0-1" basé sur l'ordre de CONDITIONS
+        const pat = CONDITIONS.map(c => condSet.has(c) ? '1' : '0').join('-');
+        const flowDef = FLOW_DEFS.find(f => f.pattern === pat);
+        
+        if (flowDef) {
+            distalToFlow[dk] = flowDef.key;
+            stats[flowDef.key]++;
+        }
+    });
+
+    // 2. Compter les features pour chaque flow
+    const featCounts = {};
+    allFeatures.forEach(f => featCounts[f] = {});
+    FLOW_DEFS.forEach(f => {
+        allFeatures.forEach(feat => featCounts[feat][f.key] = 0);
+    });
+
+    const visited = {};
+    dataSubset.forEach(row => {
+        const flowKey = distalToFlow[row.distalKey];
+        if(!flowKey) return; // Si le pattern n'est pas dans nos defs (ex: 0-0-0)
+
+        allFeatures.forEach(feat => {
+            if(row[feat] === true) {
+                const key = row.distalKey + '_' + feat;
+                if(!visited[key]) {
+                    featCounts[feat][flowKey]++;
+                    visited[key] = true;
+                }
+            }
+        });
+    });
+
+    // 3. Génération du tableau HTML
+    let html = `<table class="heatmap-table" id="data_table_${targetId}"><thead><tr><th>Feature</th>`;
+    
+    // En-têtes dynamiques basés sur FLOW_DEFS
+    FLOW_DEFS.forEach(f => {
+        html += `<th data-flow="${f.key}" onclick="sortTable('${targetId}', '${f.key}')">
+            ${f.label}<br>
+            <span style="font-weight:normal;font-size:9px">n=${stats[f.key]}</span>
+        </th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    // Corps du tableau
+    allFeatures.forEach(feat => {
+        html += `<tr><td>${feat.replace('overlap_', '')}</td>`;
+        FLOW_DEFS.forEach(f => {
+            const total = stats[f.key];
+            const count = featCounts[feat][f.key];
+            const pct = total > 0 ? Math.round((count/total)*100) : 0;
+            html += `<td>
+                <div class="hm-bar" style="width:${pct}%; background:${f.color}"></div>
+                <span class="hm-val">${pct}%</span>
+            </td>`;
+        });
+        html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+
+    document.getElementById(targetId).innerHTML = `<h4>Feature Analysis / Flow</h4>` + html;
+}
+
+function sortTable(tableId, flowKey) {
+    const table = document.getElementById(`data_table_${tableId}`);
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Déterminer la colonne à trier
+    const colIndex = FLOW_DEFS.findIndex(f => f.key === flowKey) + 1; // +1 car la première colonne est "Feature"
+
+    // Extraire les données pour le tri
+    rows.sort((a, b) => {
+        const aValue = parseInt(a.cells[colIndex].querySelector('.hm-val').textContent.replace('%', ''));
+        const bValue = parseInt(b.cells[colIndex].querySelector('.hm-val').textContent.replace('%', ''));
+        return bValue - aValue; // Tri décroissant
+    });
+
+    // Réinsérer les lignes triées
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function renderGenomicPartition(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    container.style.height = "300px";
+
+    // 1. Lecture de l'état du switch
+    const switchEl = document.getElementById('bpSwitch') || document.getElementById('bpToggle');
+    const useBp = switchEl ? switchEl.checked : false;
+
+    // 2. Préparation des données (Dédoublonnage par ROI)
+    const uniqueRois = new Map();
+    data.forEach(d => {
+        if(!uniqueRois.has(d.roi_id)) {
+            uniqueRois.set(d.roi_id, { 
+                roi: d.roi_id, 
+                part: useBp ? (d.partBP || d.partition) : (d.partDef || d.partition), 
+                conditions: new Set() 
+            });
+        }
+        uniqueRois.get(d.roi_id).conditions.add(d.Condition);
+    });
+
+    // Groupement par Pattern dynamique
+    const roisByPattern = {};
+    uniqueRois.forEach(r => {
+        // Génère le pattern "1-0-1" dynamiquement
+        const p = CONDITIONS.map(c => r.conditions.has(c) ? '1' : '0').join('-');
+        if(!roisByPattern[p]) roisByPattern[p] = [];
+        roisByPattern[p].push(r);
+    });
+
+    const plotData = [];
+    const keys = ['Promoter', 'Exon', 'Intron', 'Distal Intergenic', 'Unannotated'];
+
+    // Boucle sur les définitions de flux dynamiques
+    FLOW_DEFS.forEach(flow => {
+        const rois = roisByPattern[flow.pattern];
+        if(!rois || rois.length === 0) return;
+
+        const counts = { 'Promoter':0, 'Exon':0, 'Intron':0, 'Distal Intergenic':0, 'Unannotated':0 };
+        let total = 0;
+
+        rois.forEach(r => {
+            const pKey = r.part || "Unannotated";
+            const targetKey = keys.includes(pKey) ? pKey : 'Unannotated';
+            counts[targetKey] += 1;
+            total += 1;
+        });
+
+        const entry = { group: flow.key, label: flow.label, color: flow.color };
+        keys.forEach(k => { entry[k] = (counts[k] / total) * 100; });
+        plotData.push(entry);
+    });
+
+    // 3. Setup D3.js
+    const margin = {top: 35, right: 120, bottom: 65, left: 45};
+    const width = container.clientWidth - margin.left - margin.right;
+    const height = 280 - margin.top - margin.bottom;
+
+    const svg = d3.select(container).append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    svg.append("text")
+        .attr("x", width/2).attr("y", -15).attr("text-anchor", "middle")
+        .style("font-size", "12px").style("font-weight", "bold").style("fill", "#475569")
+        .text(useBp ? "Genomic Distribution (Weighted bp)" : "Genomic Distribution (Region Count)");
+
+    const x = d3.scaleBand().domain(plotData.map(d => d.group)).range([0, width]).padding(0.3);
+    const y = d3.scaleLinear().domain([0, 100]).range([height, 0]);
+    const color = d3.scaleOrdinal().domain(keys).range(['#ef4444', '#f59e0b', '#3b82f6', '#94a3b8', '#cbd5e1']);
+
+    const stackedData = d3.stack().keys(keys)(plotData);
+
+    // Dessin
+    const layers = svg.selectAll(".layer")
+        .data(stackedData).enter().append("g")
+        .attr("class", "layer")
+        .attr("fill", d => color(d.key));
+
+    layers.selectAll("rect")
+        .data(d => d).enter().append("rect")
+        .attr("x", d => x(d.data.group))
+        .attr("y", d => y(d[1]))
+        .attr("height", d => y(d[0]) - y(d[1]))
+        .attr("width", x.bandwidth())
+        .append("title")
+        .text(function(d) {
+            const part = d3.select(this.parentNode).datum().key;
+            return `${part}: ${(d[1]-d[0]).toFixed(1)}%`;
+        });
+
+    // Axes
+    const xAxis = svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x).tickSize(3));
+
+    xAxis.selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em").attr("dy", ".15em")
+        .attr("transform", "rotate(-35)")
+        .style("font-size", "10px").style("font-weight", "600")
+        .style("fill", d => {
+            const item = plotData.find(p => p.group === d);
+            return item ? item.color : '#333';
+        })
+        .text(d => {
+            const item = plotData.find(p => p.group === d);
+            return item ? item.label : d;
+        });
+
+    svg.append("g").call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "%"));
+
+    // Légende
+    const legend = svg.append("g").attr("transform", `translate(${width + 15}, 0)`);
+    keys.slice().reverse().forEach((key, i) => {
+        const lg = legend.append("g").attr("transform", `translate(0, ${i * 18})`);
+        lg.append("rect").attr("width", 10).attr("height", 10).attr("fill", color(key));
+        lg.append("text").attr("x", 15).attr("y", 10).text(key).style("font-size", "10px").attr("fill", "#475569");
+    });
+}
+
+function renderDynamicsPie() {
+    const ctx = document.getElementById('dynamicsPieChart');
+    if (!ctx) return;
+
+    if (dynamicsPieInstance) {
+        dynamicsPieInstance.destroy();
+    }
+
+    if (!processedData || processedData.length === 0) return;
+
+    const { stats, total } = calculateFlowStats(processedData);
+
+    const labels = [];
+    const values = [];
+    const colors = [];
+
+    FLOW_DEFS.forEach(flow => {
+        const val = stats[flow.key] || 0;
+        if (val > 0) {
+            labels.push(flow.label);
+            values.push(val);
+            colors.push(flow.color);
+        }
+    });
+
+    dynamicsPieInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 10 }
+                    }
+                },
+                datalabels: {
+                    color: '#fff',
+                    font: {
+                        weight: 'bold',
+                        size: 11
+                    },
+                    formatter: (value, context) => {
+                        const sum = context.chart._metasets[0].total;
+                        const pct = ((value / sum) * 100).toFixed(1);
+                        return pct + '%';
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+// --- 5. VIEW CONTROLLERS ---
+
+function renderGlobalView() {
+    const summaryGrid = document.getElementById('globalStatsGrid');
+    
+    const uniqueDIRs = new Set(processedData.map(r => r.distalKey)).size;
+    
+    let html = `<div class="summary-item"><span class="summary-val">${uniqueDIRs}</span><span class="summary-lbl">Total DIRs</span></div>`;
+    
+    if (selectedContexts.size > 1) {
+        selectedContexts.forEach(ctx => {
+            const ctxData = processedData.filter(r => r.Context === ctx);
+            const n = new Set(ctxData.map(r => r.distalKey)).size;
+            html += `<div class="summary-item"><span class="summary-val">${n}</span><span class="summary-lbl">Context ${ctx}</span></div>`;
+        });
+    }
+    
+    const { stats } = calculateFlowStats(processedData);
+    //const stablePct = uniqueDIRs > 0 ? ((stats.A_T_C / uniqueDIRs) * 100).toFixed(1) : 0;
+    //html += `<div class="summary-item"><span class="summary-val" style="color:#10b981">${stablePct}%</span><span class="summary-lbl">Stability (A-T-C)</span></div>`;
+
+    summaryGrid.innerHTML = html;
+
+    renderAlluvialOriginalLogic('globalAlluvial', processedData, 'Aggregated Global View');
+    renderGenomicPartition('partitionPlot', processedData);
+    renderFeatures('globalFeatures', processedData);
+    renderDynamicsPie();
+}
+
+function renderSingleView() {
+    if (!selectedROI) return;
+    const roiObj = roiMap.get(selectedROI);
+    if (!roiObj) return;
+
+    const data = roiObj.rows; 
+    
+    // 1. On prépare le conteneur et on ajoute un petit bandeau de boutons sous le titre
+    document.getElementById('singleVizContent').innerHTML = `
+        <div style="display: flex; justify-content: flex-end; padding: 10px 20px 0 0; gap: 10px;">
+            <button id="btnUCSC" class="btn-primary" style="background: #33bd78; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                Jump To UCSC
+            </button>
+        </div>
+        <div id="singleAlluvial" class="svg-container"></div>
+    `;
+
+    // 2. Logique d'ouverture UCSC
+    document.getElementById('btnUCSC').onclick = () => {
+        // On transforme "chr1_12345_67890" en "chr1:12345-67890"
+        const genomePos = selectedROI.replace(/_/g, (match, offset) => offset === selectedROI.indexOf('_') ? ':' : '-');
+        const ucscUrl = `https://genome-euro.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=${genomePos}`;
+        window.open(ucscUrl, '_blank');
+    };
+    
+    // 3. Dessin du graphique Alluvial
+    renderAlluvialOriginalLogic('singleAlluvial', data, `${roiObj.gene} (${selectedROI})`);
+    
+    // 4. --- On garde votre lien GeneCards sur le titre SVG (comme fait précédemment) ---
+    const svg = d3.select("#singleAlluvial svg");
+    const titleNode = svg.select("text"); 
+    if (!titleNode.empty()) {
+        const fullTitle = titleNode.text();
+        titleNode.text(null);
+        titleNode.append("a")
+            .attr("href", `https://www.genecards.org/cgi-bin/carddisp.pl?gene=${roiObj.gene}`)
+            .attr("target", "_blank")
+            .style("cursor", "pointer")
+            .append("tspan")
+                .text(fullTitle)
+                .attr("fill", "#2563eb")
+                .style("text-decoration", "underline")
+                .append("title")
+                .text(`View ${roiObj.gene} on GeneCards`);
+    }
+
+    // 5. Rendu des features
+    renderFeatures('singleFeatures', data);
+}
+
+function updateROIList() {
+    const container = document.getElementById('roiList');
+    const search = document.getElementById('geneSearch').value.toLowerCase();
+
+    const rois = Array.from(roiMap.values()).sort((a, b) => b.rows.length - a.rows.length);
+
+    let html = '';
+    let count = 0;
+
+    rois.forEach(r => {
+        if (search && !r.gene.toLowerCase().includes(search)) return;
+        count++;
+        if (count > 200) return;
+
+        // Générer les badges de contexte avec les couleurs appropriées
+        const badges = Array.from(r.contexts).map(c => {
+            const color = getContextColor(c);
+            return `<span class="ctx-badge" style="background-color: ${color};">${c}</span>`;
+        }).join('');
+
+        const isSel = (r.id === selectedROI) ? 'selected' : '';
+
+        html += `
+            <div class="roi-item ${isSel}" onclick="selectROI('${r.id}')" id="roi_${r.id}">
+                <div class="roi-header">
+                    <span class="roi-gene">${r.gene}</span>
+                    <span class="roi-id" style="font-size:9px">n=${r.rows.length/3 | 0}</span>
+                </div>
+                <div class="roi-id">${r.id}</div>
+                <div class="ctx-badges">${badges}</div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    document.getElementById('roiCount').textContent = roiMap.size;
+}
+
+
+function selectROI(id) {
+    selectedROI = id;
+    document.querySelectorAll('.roi-item').forEach(el => el.classList.remove('selected'));
+    const el = document.getElementById('roi_' + id);
+    if(el) el.classList.add('selected');
+    
+    switchView('single');
+    renderSingleView();
+}
+
+function switchView(view) {
+    currentView = view;
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(view === 'global' ? 'tabGlobal' : 'tabSingle').classList.add('active');
+    
+    document.getElementById('viewGlobal').style.display = view === 'global' ? 'block' : 'none';
+    document.getElementById('viewSingle').style.display = view === 'single' ? 'block' : 'none';
+}
+
+function filterROIList() {
+    updateROIList();
+}
+
+function exportSVG() {
+    const svgId = currentView === 'global' ? 'svg_main_globalAlluvial' : 'svg_main_singleAlluvial';
+    const tableId = currentView === 'global' ? 'globalFeatures' : 'singleFeatures';
+    
+    const originalSvg = document.getElementById(svgId);
+    if(!originalSvg) return;
+    
+    const svgClone = originalSvg.cloneNode(true);
+    const tableContent = document.getElementById(tableId).innerHTML;
+    
+    const tableHeight = (allFeatures.length * 35) + 150; 
+    const totalHeight = 650 + tableHeight;
+    
+    // MAJ des dimensions ET du viewBox pour le cadrage
+    svgClone.setAttribute('height', totalHeight);
+    svgClone.setAttribute('viewBox', `0 0 800 ${totalHeight}`);
+    
+    const exportArea = svgClone.querySelector('g[id^="table_export_area"]');
+    if (!exportArea) return;
+
+    const foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+    foreignObject.setAttribute("width", "760");
+    foreignObject.setAttribute("height", tableHeight);
+    
+    foreignObject.innerHTML = `
+        <div xmlns="http://www.w3.org/1999/xhtml">
+            <style>
+                .heatmap-table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 10px; background: white; }
+                .heatmap-table th { background: #f8fafc; padding: 6px; border: 1px solid #e2e8f0; text-align: center; }
+                .heatmap-table td { border: 1px solid #e2e8f0; padding: 5px; text-align: center; position: relative; min-height: 30px; }
+                .hm-bar { position: absolute; top: 2px; bottom: 2px; left: 0; opacity: 0.3; }
+                .hm-val { position: relative; font-weight: bold; }
+                h4 { font-family: sans-serif; margin-bottom: 10px; color: #1e293b; margin-top: 20px; }
+            </style>
+            ${tableContent}
+        </div>
+    `;
+    
+    exportArea.appendChild(foreignObject);
+
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgClone);
+    if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+    
+    const url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `DIR_Dynamics_${currentView}_V15_Network.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportPartitionSVG() {
+    const svgEl = document.querySelector("#partitionPlot svg");
+    if (!svgEl) return;
+
+    // Ajout des namespaces pour la compatibilité Illustrator/Inkscape
+    svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgEl);
+    
+    // Ajout de l'en-tête XML
+    if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "genomic_partition_overloop.svg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportPieSVG() {
+    if (!processedData || processedData.length === 0) return;
+
+    const { stats } = calculateFlowStats(processedData);
+
+    const data = [];
+    FLOW_DEFS.forEach(flow => {
+        const val = stats[flow.key] || 0;
+        if (val > 0) {
+            data.push({
+                label: flow.label,
+                value: val,
+                color: flow.color
+            });
+        }
+    });
+
+    const total = data.reduce((a,b)=>a+b.value,0);
+    const radius = 150;
+    const cx = 200;
+    const cy = 200;
+
+    let currentAngle = 0;
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">`;
+    svg += `<rect width="100%" height="100%" fill="white"/>`;
+
+    data.forEach(d => {
+        const sliceAngle = (d.value / total) * 2 * Math.PI;
+        const x1 = cx + radius * Math.cos(currentAngle);
+        const y1 = cy + radius * Math.sin(currentAngle);
+
+        const x2 = cx + radius * Math.cos(currentAngle + sliceAngle);
+        const y2 = cy + radius * Math.sin(currentAngle + sliceAngle);
+
+        const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+        const pathData = `
+            M ${cx} ${cy}
+            L ${x1} ${y1}
+            A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}
+            Z
+        `;
+
+        svg += `<path d="${pathData}" fill="${d.color}" stroke="#fff"/>`;
+
+        // label %
+        const midAngle = currentAngle + sliceAngle/2;
+        const lx = cx + (radius * 0.6) * Math.cos(midAngle);
+        const ly = cy + (radius * 0.6) * Math.sin(midAngle);
+        const pct = ((d.value/total)*100).toFixed(1);
+
+        svg += `<text x="${lx}" y="${ly}" 
+                     text-anchor="middle" 
+                     dominant-baseline="middle"
+                     font-size="12" 
+                     fill="#fff"
+                     font-weight="bold">${pct}%</text>`;
+
+        currentAngle += sliceAngle;
+    });
+
+    svg += `</svg>`;
+
+    const blob = new Blob([svg], {type:"image/svg+xml;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Dynamics_Pie.svg";
+    link.click();
+}
+
+// --- 6. VENN DIAGRAM MODULE (v5.0 - FINAL: COLORS MATCHING APP) ---
+
+// Configuration de style (Polices)
+const VENN_STYLE = {
+    fontMain: "font-family: 'Segoe UI', sans-serif; font-weight: 700; font-size: 14px; fill: #1e293b;",
+    fontCount: "font-family: 'Segoe UI', sans-serif; font-weight: 700; font-size: 14px; fill: #ffffff; text-shadow: 0px 0px 3px #000;",
+    fontInter: "font-family: 'Segoe UI', sans-serif; font-weight: 700; font-size: 13px; fill: #ffffff; text-shadow: 0px 0px 3px #000;",
+    opacity: 0.5
+};
+
+
+function openVennWindow() {
+    if (processedData.length === 0) return;
+    const activeContexts = Array.from(selectedContexts);
+    if (activeContexts.length < 2 || activeContexts.length > 4) return alert("Sélectionnez entre 2 et 4 contextes.");
+
+    if (activeContexts.length === 4) {
+        const colors4 = activeContexts.map(c => getContextColor(c));
+        openFourWayEuler(activeContexts, colors4);
+        return;
+    }
+
+    const setsMap = {};
+    activeContexts.forEach(ctx => {
+        setsMap[ctx] = new Set(processedData.filter(r => r.Context === ctx).map(r => r.roi_id));
+    });
+
+    const combinations = arr => arr.reduce((a, v) => a.concat(a.map(r => [v].concat(r))), [[]]).slice(1);
+    const vennData = combinations(activeContexts).map(comb => {
+        let inter = new Set(setsMap[comb[0]]);
+        for (let i = 1; i < comb.length; i++) {
+            inter = new Set([...inter].filter(x => setsMap[comb[i]].has(x)));
+        }
+        return { sets: comb, size: inter.size || 1e-6 };
+    });
+
+    const allROIs = new Set(processedData.map(r => r.roi_id));
+    const exclusiveCounts = {};
+    allROIs.forEach(roi => {
+        const belongs = activeContexts.filter(ctx => setsMap[ctx].has(roi)).sort();
+        if (belongs.length) {
+            const k = belongs.join(",");
+            exclusiveCounts[k] = (exclusiveCounts[k] || 0) + 1;
+        }
+    });
+
+    // On prépare la map de couleurs pour l'injecter dans la nouvelle fenêtre
+    const colorMapObj = {};
+    activeContexts.forEach(ctx => {
+        colorMapObj[ctx] = getContextColor(ctx);
+    });
+
+    const win = window.open("", "_blank", "width=850,height=750");
+    win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Venn Diagram</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/venn.js/0.2.20/venn.min.js"><\/script>
+        <style>
+            body { font-family: sans-serif; text-align: center; padding: 20px; background: #fff; }
+            h3 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <h3>Overlaps Exclusifs (ROI ID)</h3>
+        <div id="venn"></div>
+        <script>
+            const sets = ${JSON.stringify(vennData)};
+            const exclusive = ${JSON.stringify(exclusiveCounts)};
+            const colorMap = ${JSON.stringify(colorMapObj)}; // Injection des couleurs
+
+            const chart = venn.VennDiagram().width(700).height(600).styled(false);
+            const div = d3.select("#venn").datum(sets).call(chart);
+
+            // Appliquer les couleurs
+            div.selectAll("path")
+                .style("fill-opacity", 0.7)
+                .style("stroke-opacity", 0)
+                .style("fill", (d) => {
+                    if(d.sets.length === 1) {
+                        return colorMap[d.sets[0]]; // Utilisation de la map injectée
+                    }
+                    return "rgba(100, 116, 139, 0.7)";
+                });
+
+            div.selectAll("g").each(function(d) {
+                const group = d3.select(this);
+                const oldText = group.select("text");
+                let x = 0, y = 0;
+                if (!oldText.empty()) {
+                    x = parseFloat(oldText.attr("x"));
+                    y = parseFloat(oldText.attr("y"));
+                    oldText.remove();
+                } else {
+                    const b = this.getBBox();
+                    x = b.x + b.width/2; y = b.y + b.height/2;
+                }
+                const key = d.sets.sort().join(",");
+                const val = exclusive[key] || 0;
+
+                if (d.sets.length === 1) {
+                    const g = group.append("text").attr("x", x).attr("y", y).attr("text-anchor", "middle");
+                    g.append("tspan").text(d.sets[0]).attr("style", "font-family: 'Segoe UI', sans-serif; font-weight: 700; font-size: 14px; fill: #1e293b;").attr("x", x).attr("dy", "-0.3em");
+                    g.append("tspan").text(val).attr("style", "font-family: 'Segoe UI', sans-serif; font-weight: 700; font-size: 14px; fill: #ffffff; text-shadow: 0px 0px 3px #000;").attr("x", x).attr("dy", "1.3em");
+                } else if (val > 0) {
+                    group.append("text").attr("x", x).attr("y", y).attr("dy", "0.35em")
+                        .attr("text-anchor", "middle").attr("style", "font-family: 'Segoe UI', sans-serif; font-weight: 700; font-size: 13px; fill: #ffffff; text-shadow: 0px 0px 3px #000;").text(val);
+                }
+            });
+        <\/script>
+    </body>
+    </html>`);
+    win.document.close();
+}
+
+
+// --- 4-WAY EULER SPECIFIQUE (Avec Couleurs App) ---
+function openFourWayEuler(contexts, colors) {
+    const roiMap = new Map();
+    processedData.forEach(r => {
+        if (!roiMap.has(r.roi_id)) roiMap.set(r.roi_id, new Set());
+        roiMap.get(r.roi_id).add(r.Context);
+    });
+
+    const counts = {};
+    roiMap.forEach(set => {
+        const k = contexts.map(c => set.has(c) ? "1" : "0").join("");
+        counts[k] = (counts[k] || 0) + 1;
+    });
+
+    const win = window.open("", "_blank", "width=850,height=780");
+    win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>4-way Analysis</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>
+        <style>
+            body { font-family: sans-serif; text-align: center; background: #fff; padding: 20px;}
+            h3 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <h3>Comparaison 4 Contextes (Exclusifs)</h3>
+        <svg id="euler" width="800" height="650"></svg>
+        <script>
+            const svg = d3.select("#euler");
+            const cx = 400, cy = 330, r = 190;
+            const colors = ${JSON.stringify(colors)}; // Couleurs synchronisées
+            
+            const sets = [
+                { name: "${contexts[0]}", x: cx, y: cy-120 },
+                { name: "${contexts[1]}", x: cx+120, y: cy },
+                { name: "${contexts[2]}", x: cx, y: cy+120 },
+                { name: "${contexts[3]}", x: cx-120, y: cy }
+            ];
+
+            sets.forEach((s, i) => {
+                svg.append("circle")
+                    .attr("cx", s.x).attr("cy", s.y).attr("r", r)
+                    .attr("fill-opacity", ${VENN_STYLE.opacity})
+                    .attr("fill", colors[i])
+                    .attr("stroke", colors[i])
+                    .attr("stroke-width", 2);
+
+                const angle = Math.atan2(s.y - cy, s.x - cx);
+                const lx = cx + Math.cos(angle) * (r + 55); 
+                const ly = cy + Math.sin(angle) * (r + 55);
+
+                svg.append("text")
+                    .attr("x", lx).attr("y", ly).attr("text-anchor", "middle").attr("dy", "0.3em")
+                    .attr("style", "${VENN_STYLE.fontMain}")
+                    .text(s.name);
+            });
+
+            function inside(px, py, c) { return Math.hypot(px - c.x, py - c.y) <= r; }
+
+            function getRegionCenters(step = 6) {
+                const acc = {};
+                for (let x = 0; x < 800; x += step) {
+                    for (let y = 0; y < 650; y += step) {
+                        let k = "";
+                        sets.forEach(s => k += inside(x, y, s) ? "1" : "0");
+                        if (k === "0000") continue;
+                        if (!acc[k]) acc[k] = { x: 0, y: 0, n: 0 };
+                        acc[k].x += x; acc[k].y += y; acc[k].n++;
+                    }
+                }
+                const out = {};
+                Object.entries(acc).forEach(([k,v]) => { if (v.n > 0) out[k] = [v.x/v.n, v.y/v.n]; });
+                return out;
+            }
+
+            const cpos = getRegionCenters();
+            const counts = ${JSON.stringify(counts)};
+            
+            Object.entries(counts).forEach(([k,v]) => {
+                if (v > 0 && cpos[k]) {
+                    svg.append("text")
+                        .attr("x", cpos[k][0]).attr("y", cpos[k][1] + 5)
+                        .attr("text-anchor", "middle")
+                        .attr("style", "${VENN_STYLE.fontCount}")
+                        .text(v);
+                }
+            });
+        <\/script>
+    </body>
+    </html>`);
+    win.document.close();
+}
+
+// --- 7. NETWORK WINDOW INTEGRATION (V18 - DIRECT vs INDIRECT LINKS) ---
+
+function openNetworkWindow() {
+    if (degData.length === 0) {
+        alert("Please load the DEG file first.");
+        return;
+    }
+
+    // --- 1. PREPARATION DES DONNEES ---
+    const distalFlowMap = {}; 
+    const distalMap = {};
+    
+    processedData.forEach(r => {
+        if(!distalMap[r.distalKey]) distalMap[r.distalKey] = new Set();
+        distalMap[r.distalKey].add(r.Condition);
+    });
+    
+    if (typeof window.selectedDEGContexts === 'undefined') {
+        window.selectedDEGContexts = new Set(degData.map(d => d.context).filter(c => c && c !== 'Unknown'));
+    }
+    const filteredDEGData = degData.filter(deg => window.selectedDEGContexts.has(deg.context));
+
+    if (filteredDEGData.length === 0) {
+        alert("No DEGs remaining after context filtering");
+        return;
+    }
+
+    Object.keys(distalMap).forEach(dk => {
+        const s = distalMap[dk];
+        const pattern = CONDITIONS.map(c => s.has(c) ? '1' : '0').join('-');
+        const def = FLOW_DEFS.find(f => f.pattern === pattern);
+        distalFlowMap[dk] = { label: def ? def.label : 'Other', color: def ? def.color : '#64748b' };
+    });
+
+    const asTargets = [];
+    const seenTargets = new Set();
+    processedData.forEach(r => {
+        const parts = r.roi_id.split('_');
+        if (parts.length >= 3) {
+            const tChr = parts[0], tStart = parseInt(parts[1]), tEnd = parseInt(parts[2]);
+            if (!isNaN(tStart) && !isNaN(tEnd) && !seenTargets.has(r.roi_id)) {
+                asTargets.push({ gene: r.gene, chr: tChr, start: tStart, end: tEnd });
+                seenTargets.add(r.roi_id);
+            }
+        }
+    });
+
+    const linkAggregation = new Map(); 
+    const nodesMap = new Map();
+    const uniqueDIRs = new Map();
+
+    processedData.forEach(r => {
+        if(!uniqueDIRs.has(r.distalKey)) {
+            uniqueDIRs.set(r.distalKey, { chr: r.distal_chr, start: r.distal_start, end: r.distal_end, gene: r.gene });
+        }
+    });
+
+    const registerLink = (sourceId, targetId, category, flowObj, context, interactionType) => {
+        const key = `${sourceId}|${targetId}`;
+        if (!linkAggregation.has(key)) {
+            linkAggregation.set(key, { source: sourceId, target: targetId, cat: category, type: interactionType, dynamics: new Map() });
+        } else {
+            const existing = linkAggregation.get(key);
+            if (interactionType === "Direct") existing.type = "Direct";
+        }
+        if (flowObj) linkAggregation.get(key).dynamics.set(flowObj.label, flowObj.color);
+
+        if (!nodesMap.has(sourceId)) nodesMap.set(sourceId, { id: sourceId, type: "AS" });
+        if (!nodesMap.has(targetId)) {
+            nodesMap.set(targetId, { id: targetId, type: category === "DEG" ? "DEG" : "AS", foundIn: new Set() });
+        }
+        const n = nodesMap.get(targetId);
+        if (category === "AS") n.type = "AS"; 
+        if (category === "DEG" && context && n.foundIn) n.foundIn.add(context);
+    };
+
+    uniqueDIRs.forEach((dir, dKey) => {
+        const sourceId = dir.gene;
+        const flowObj = distalFlowMap[dKey];
+        filteredDEGData.forEach(deg => {
+            let isDirect = false;
+            if (dir.chr === deg.chr) {
+                const overlap = Math.max(0, Math.min(dir.end, deg.end) - Math.max(dir.start, deg.start));
+                if (overlap > 0) { registerLink(sourceId, deg.gene, "DEG", flowObj, deg.context, "Direct"); isDirect = true; }
+            }
+            if (!isDirect && deg.distal_chr && dir.chr === deg.distal_chr) {
+                const overlap = Math.max(0, Math.min(dir.end, deg.distal_end) - Math.max(dir.start, deg.distal_start));
+                if (overlap > 0) registerLink(sourceId, deg.gene, "DEG", flowObj, deg.context, "Indirect");
+            }
+        });
+        asTargets.forEach(target => {
+            if (dir.chr === target.chr) {
+                if (dir.gene === target.gene && dir.start >= target.start && dir.end <= target.end) return; 
+                const overlap = Math.max(0, Math.min(dir.end, target.end) - Math.max(dir.start, target.start));
+                if (overlap > 0) registerLink(sourceId, target.gene, "AS", flowObj, null, "Direct"); 
+            }
+        });
+    });
+
+    const nodes = Array.from(nodesMap.values()).map(n => ({
+        id: n.id, type: n.type,
+        foundInStr: (n.foundIn && n.foundIn.size > 0) ? Array.from(n.foundIn).join(", ") : ""
+    }));
+
+    const links = [];
+    linkAggregation.forEach((val) => {
+        const dynamicsArray = Array.from(val.dynamics.entries());
+        dynamicsArray.forEach(([label, color], idx) => {
+            links.push({
+                source: val.source, target: val.target,
+                flowLabel: label, flowColor: color,
+                interactionType: val.type, multiIdx: idx, totalDyn: dynamicsArray.length,
+                flowSummary: dynamicsArray.map(d => d[0]).join(", ")
+            });
+        });
+    });
+
+    const win = window.open("", "_blank", "width=1400,height=1000");
+    
+    // [MODIF] Utilisation d'un sanitizer strict pour les ID HTML
+    // Remplace tout ce qui n'est pas alphanumérique par "_"
+    // Ex: "Dyn. I (Loss/Regain)" devient "Dyn__I__Loss_Regain_"
+    
+    win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>OveR~L00P - Network Analysis</title>
+        <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; background: #fff; overflow: hidden; }
+            #controls { position: absolute; top: 10px; left: 10px; width: 250px; background: white; padding: 15px; border: 1px solid #ddd; z-index: 100; font-size: 12px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
+            .btn-action { margin-top: 5px; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; width: 100%; }
+            #legend { display: none; margin-top: 10px; font-size: 10px; border-top: 1px solid #eee; padding-top: 5px; }
+            .legend-item { display: flex; align-items: center; margin-bottom: 2px; cursor: pointer; transition: opacity 0.2s; }
+            .legend-item.disabled { opacity: 0.2; text-decoration: line-through; }
+            .legend-box { width: 10px; height: 10px; margin-right: 5px; border-radius: 2px; }
+            h4 { margin: 12px 0 6px 0; font-size: 13px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+            #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px; z-index: 200; pointer-events: none; }
+            .line-legend { margin-top: 5px; font-size: 11px; color: #555; }
+            .line-sample { display: inline-block; width: 20px; height: 2px; vertical-align: middle; margin-right: 5px; background: #999; }
+            .line-dashed { border-top: 2px dashed #999; background: none; height: 2px;}
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>
+    </head>
+    <body>
+        <div id="loading">Calculating Layout...</div>
+        <div id="controls">
+            <h3 style="margin:0 0 10px 0;">Network Plot</h3>
+            <h4>Node Type</h4>
+            <div style="display:flex;align-items:center;margin-bottom:4px;"><div style="width:12px;height:12px;background:#6366f1;border-radius:50%;margin-right:8px;"></div>AS</div>
+            <div style="display:flex;align-items:center;margin-bottom:4px;"><div style="width:12px;height:12px;background:#f43f5e;border-radius:50%;margin-right:8px;"></div>DEG</div>
+            <h4>Interaction Type</h4>
+            <div class="line-legend"><span class="line-sample"></span>Direct</div>
+            <div class="line-legend"><span class="line-sample line-dashed"></span>Indirect</div>
+            <h4>Dynamics Option</h4>
+            <button class="btn-action" id="btnColorToggle" style="background: #6366f1;">Color by Dynamics: OFF</button>
+            <div id="legend">
+                ${FLOW_DEFS.map(f => `
+                    <div class="legend-item" id="leg_${f.label.replace(/[^a-zA-Z0-9]/g, '_')}" onclick="toggleFilter('${f.label}')">
+                        <div class="legend-box" style="background:${f.color}"></div>${f.label}
+                    </div>
+                `).join('')}
+            </div>
+            <h4>Actions</h4>
+            <button class="btn-action" style="background: #059669;" onclick="exportPublicationSVG()">Export SVG</button>
+            <div style="margin-top:5px; display:flex; gap:5px;">
+                <button id="btnNetworkGO" onclick="runGOFromNetwork()" style="flex:1; background: #ec4899;" class="btn-action">📊 GO</button>           
+                <button onclick="window.close()" style="background: #ef4444;" class="btn-action">Close</button>
+            </div>
+        </div>
+        <div id="graph"></div>
+        <script>
+            let svg, g, simulation, zoom, isColored = false;
+            const nodes = ${JSON.stringify(nodes)};
+            const links = ${JSON.stringify(links)};
+            let activeDynamics = new Set(links.map(l => l.flowLabel));
+
+            function toggleFilter(label) {
+                if (!isColored) return;
+                
+                if (activeDynamics.has(label)) activeDynamics.delete(label);
+                else activeDynamics.add(label);
+                
+                // [CORRECTION] Utilisation du même sanitizer strict ici pour retrouver l'ID
+                const safeId = "leg_" + label.replace(/[^a-zA-Z0-9]/g, '_');
+                d3.select("#" + safeId).classed("disabled", !activeDynamics.has(label));
+                
+                updateLinkVisibility();
+            }
+
+            function updateLinkVisibility() {
+                g.selectAll("path.link")
+                    .attr("opacity", d => (isColored && !activeDynamics.has(d.flowLabel)) ? 0 : 0.6)
+                    .style("pointer-events", d => (isColored && !activeDynamics.has(d.flowLabel)) ? "none" : "auto");
+            }
+
+            window.onload = function() {
+                const width = window.innerWidth, height = window.innerHeight;
+                svg = d3.select("#graph").append("svg").attr("width", "100%").attr("height", "100vh");
+                g = svg.append("g");
+                zoom = d3.zoom().scaleExtent([0.05, 10]).on("zoom", (e) => g.attr("transform", e.transform));
+                svg.call(zoom);
+
+                simulation = d3.forceSimulation(nodes)
+                    .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+                    .force("charge", d3.forceManyBody().strength(0).theta(0.9).distanceMax(500))
+                    .force("center", d3.forceCenter(width / 2, height / 2))
+                    .force("collide", d3.forceCollide(40).iterations(1));
+
+                simulation.stop();
+                for (let i = 0; i < 300; ++i) simulation.tick();
+                
+                const minX = d3.min(nodes, d => d.x), maxX = d3.max(nodes, d => d.x);
+                const minY = d3.min(nodes, d => d.y), maxY = d3.max(nodes, d => d.y);
+                if (minX !== undefined) {
+                    const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+                    const scale = 0.85 / Math.max((maxX - minX) / width, (maxY - minY) / height);
+                    svg.call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(scale).translate(-midX, -midY));
+                }
+                document.getElementById('loading').style.display = 'none';
+
+                const link = g.append("g").selectAll("path").data(links).enter().append("path")
+                    .attr("class", "link")
+                    .attr("fill", "none")
+                    .attr("stroke", "#64748b")
+                    .attr("stroke-width", 3)
+                    .attr("opacity", 0.6)
+                    .attr("stroke-dasharray", d => d.interactionType === "Indirect" ? "5,5" : "0");
+
+                link.append("title").text(d => "Dynamic: " + d.flowLabel + "\\nType: " + d.interactionType + "\\nFull: " + d.flowSummary);
+
+                const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
+                    .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+                    .call(d3.drag()
+                        .on("start", (e,d) => { if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+                        .on("drag", (e,d) => { d.fx=e.x; d.fy=e.y; })
+                        .on("end", (e,d) => { if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }));
+
+                node.append("circle").attr("r", 10).attr("fill", d => d.type === "DEG" ? "#f43f5e" : "#6366f1").attr("stroke", "#fff").attr("stroke-width", 2);
+                node.append("text").text(d => d.id).attr("x", 14).attr("y", 4).style("font-size", "14px").style("font-weight", "600").style("paint-order", "stroke").style("stroke", "#fff").style("stroke-width", "3px");
+
+                function updateLinks() {
+                    link.attr("d", d => {
+                        const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
+                        const dr = Math.sqrt(dx * dx + dy * dy);
+                        if (dr === 0) return "";
+                        const offset = isColored ? (d.multiIdx - (d.totalDyn - 1) / 2) * 8 : 0;
+                        const nx = dy / dr, ny = -dx / dr;
+                        const x1 = d.source.x + nx * offset, y1 = d.source.y + ny * offset;
+                        const x2 = d.target.x + nx * offset, y2 = d.target.y + ny * offset;
+                        return \`M\${x1},\${y1}A\${dr*1.5},\${dr*1.5} 0 0,1 \${x2},\${y2}\`;
+                    });
+                }
+
+                simulation.on("tick", () => {
+                    updateLinks();
+                    node.attr("transform", d => "translate(" + d.x + "," + d.y + ")");
+                });
+
+                document.getElementById('btnColorToggle').onclick = function() {
+                    isColored = !isColored;
+                    this.textContent = "Color by Dynamics: " + (isColored ? "ON" : "OFF");
+                    this.style.background = isColored ? "#10b981" : "#6366f1";
+                    document.getElementById('legend').style.display = isColored ? "block" : "none";
+                    link.attr("stroke", d => isColored ? d.flowColor : "#64748b");
+                    updateLinks();
+                    updateLinkVisibility();
+                };
+            };
+
+            function exportPublicationSVG() {
+                const svgEl = document.querySelector("svg").cloneNode(true);
+                const serializer = new XMLSerializer();
+                let source = '<?xml version="1.0" standalone="no"?>\\r\\n' + serializer.serializeToString(svgEl);
+                const link = document.createElement("a");
+                link.href = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+                link.download = "Network_Export.svg";
+                link.click();
+            }
+
+            async function runGOFromNetwork() {
+                 const networkGenes = d3.selectAll("circle").data()
+                    .map(d => d.id ? d.id.trim() : null)
+                    .filter(g => g && g !== "" && !g.includes('.'));
+                
+                if (networkGenes.length < 3) { alert("Pas assez de gènes valides."); return; }
+                const btn = document.getElementById('btnNetworkGO');
+                btn.textContent = "⌛ Loading..."; btn.disabled = true;
+
+                try {
+                    const response = await fetch('https://biit.cs.ut.ee/gprofiler/api/gost/profile/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            organism: 'hsapiens', query: networkGenes,
+                            sources: ['GO:BP', 'GO:MF', 'GO:CC', 'REAC'],
+                            all_results: true, user_threshold: 0.05, no_evidences: true
+                        })
+                    });
+                    const data = await response.json();
+                    if (!data || !data.result || data.result.length === 0) { alert("Aucun enrichissement trouvé."); } 
+                    else {
+                        if (window.opener && !window.opener.closed) { window.opener.openGOWindow(data.result); } 
+                        else { alert("La fenêtre principale n'est plus accessible."); }
+                    }
+                } catch (err) { console.error("Erreur:", err); alert("Erreur API."); } 
+                finally { btn.textContent = "📊 GO"; btn.disabled = false; }
+            }
+        <\/script>
+    </body>
+    </html>`);
+    win.document.close();
+}
+// --- MODULE ANALYSE GO (GProfiler) ---
+async function runGOAnalysis() {
+    // Récupérer les gènes uniques basés sur la sélection actuelle (roiMap contient les ROIs filtrés)
+    const genes = Array.from(new Set(Array.from(roiMap.values()).map(r => r.gene)));
+    
+    if (genes.length < 3) {
+        alert("Veuillez filtrer au moins 3 gènes pour l'analyse d'enrichissement.");
+        return;
+    }
+
+    const btn = document.getElementById('btnGO');
+    const originalText = btn.textContent;
+    btn.textContent = "⌛ Loading...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('https://biit.cs.ut.ee/gprofiler/api/gost/profile/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                organism: 'hsapiens',
+                query: genes,
+                sources: ['GO:BP', 'GO:MF', 'GO:CC', 'REAC'],
+                all_results: true,
+                user_threshold: 0.05,
+                no_evidences: true,
+                combined_indication: true
+            })
+        });
+
+        const data = await response.json();
+        if (!data.result || data.result.length === 0) {
+            alert("Aucun enrichissement trouvé pour ces gènes.");
+        } else {
+            openGOWindow(data.result);
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erreur lors de l'appel à GProfiler. Vérifiez votre connexion.");
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+function openGOWindow(results) {
+    const win = window.open("", "_blank", "width=1200,height=900");
+    
+    const sourcesInfo = {
+        'GO:BP': { title: 'Biological Process', color: 'rgba(54, 162, 235, 0.8)' },
+        'GO:MF': { title: 'Molecular Function', color: 'rgba(255, 99, 132, 0.8)' },
+        'GO:CC': { title: 'Cellular Component', color: 'rgba(75, 192, 192, 0.8)' },
+        'REAC':  { title: 'Reactome Pathways', color: 'rgba(153, 102, 255, 0.8)' }
+    };
+
+    win.document.write(`
+    <html>
+    <head>
+        <title>GO Enrichment - DotPlots</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"><\\/script>
+        <style>
+            body { font-family: sans-serif; padding: 30px; background: #f1f5f9; color: #1e293b; }
+            .header-info { text-align: center; margin-bottom: 30px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+            .chart-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); height: 450px; }
+            h2 { margin: 0; color: #0f172a; }
+        </style>
+    </head>
+    <body>
+        <div class="header-info">
+            <h2>Functional Enrichment Analysis</h2>
+            <p>Top 15 terms by p-value (GProfiler API)</p>
+        </div>
+        <div class="grid">
+            <div class="chart-card"><canvas id="chart_GO_BP"></canvas></div>
+            <div class="chart-card"><canvas id="chart_GO_MF"></canvas></div>
+            <div class="chart-card"><canvas id="chart_GO_CC"></canvas></div>
+            <div class="chart-card"><canvas id="chart_REAC"></canvas></div>
+        </div>
+        <script>
+            const results = \${JSON.stringify(results)};
+            const info = \${JSON.stringify(sourcesInfo)};
+
+            Object.keys(info).forEach(src => {
+                const filtered = results
+                    .filter(d => d.source === src)
+                    .sort((a, b) => a.p_value - b.p_value)
+                    .slice(0, 15);
+
+                const ctx = document.getElementById('chart_' + src.replace(':','_')).getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: filtered.map(d => d.name.length > 50 ? d.name.substring(0,47)+'...' : d.name),
+                        datasets: [{
+                            label: '-log10(p-adj)',
+                            data: filtered.map(d => -Math.log10(d.p_value)),
+                            backgroundColor: info[src].color,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            title: { display: true, text: info[src].title, font: { size: 16 } },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: '-log10(p-adjusted)' }, beginAtZero: true }
+                        }
+                    }
+                });
+            });
+        <\\/script>
+    </body>
+    </html>`);
+    win.document.close();
+}
+// --- MODULE ANALYSE GO (GProfiler) ---
+async function runGOAnalysis() {
+    // 1. Nettoyage et filtrage des gènes
+    const genes = Array.from(new Set(
+        Array.from(roiMap.values())
+            .map(r => r.gene ? r.gene.trim() : null)
+            .filter(g => g && g !== "" && g !== "undefined" && !g.includes('.'))
+    )).slice(0, 1000);
+
+    if (genes.length < 3) {
+        alert("Veuillez sélectionner au moins 3 gènes valides.");
+        return;
+    }
+
+    const btn = document.getElementById('btnGO');
+    btn.textContent = "⌛ Loading...";
+    btn.disabled = true;
+
+    // 2. Corps de la requête SANS le paramètre obsolète
+    const requestBody = {
+        organism: 'hsapiens',
+        query: genes,
+        sources: ['GO:BP', 'GO:MF', 'GO:CC', 'REAC'],
+        all_results: false,
+        no_evidences: true
+        // 'combined_indication' a été supprimé ici
+    };
+
+    try {
+        const response = await fetch('https://biit.cs.ut.ee/gprofiler/api/gost/profile/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Détail Erreur API:", errorText);
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.result || data.result.length === 0) {
+            alert("Analyse terminée : Aucun enrichissement significatif (p-adj < 0.05) trouvé.");
+        } else {
+            openGOWindow(data.result);
+        }
+    } catch (err) {
+        console.error("Erreur complète:", err);
+        alert("L'API a rejeté la requête. Détails dans la console (F12).");
+    } finally {
+        btn.textContent = "📊 GO Analysis";
+        btn.disabled = false;
+    }
+}
+
+function openGOWindow(results) {
+    const win = window.open("", "_blank", "width=1200,height=900");
+    
+    const sourcesInfo = {
+        'GO:BP': { title: 'Biological Process', color: 'rgba(54, 162, 235, 0.8)' },
+        'GO:MF': { title: 'Molecular Function', color: 'rgba(255, 99, 132, 0.8)' },
+        'GO:CC': { title: 'Cellular Component', color: 'rgba(75, 192, 192, 0.8)' },
+        'REAC':  { title: 'Reactome Pathways', color: 'rgba(153, 102, 255, 0.8)' }
+    };
+
+    // On prépare le contenu HTML
+    const htmlContent = `
+    <html>
+    <head>
+        <title>GO Enrichment - DotPlots</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+        <style>
+            body { font-family: sans-serif; padding: 30px; background: #f1f5f9; color: #1e293b; }
+            .header-info { text-align: center; margin-bottom: 30px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+            .chart-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); height: 450px; }
+            h2 { margin: 0; color: #0f172a; }
+        </style>
+    </head>
+    <body>
+        <div class="header-info">
+            <h2>Functional Enrichment Analysis</h2>
+            <p>Top 15 terms by p-value (GProfiler API)</p>
+        </div>
+        <div class="grid">
+            <div class="chart-card"><canvas id="chart_GO_BP"></canvas></div>
+            <div class="chart-card"><canvas id="chart_GO_MF"></canvas></div>
+            <div class="chart-card"><canvas id="chart_GO_CC"></canvas></div>
+            <div class="chart-card"><canvas id="chart_REAC"></canvas></div>
+        </div>
+        <script>
+            // Utilisation d'une méthode plus sûre pour passer les données
+            const results = ${JSON.stringify(results)};
+            const info = ${JSON.stringify(sourcesInfo)};
+
+            window.onload = function() {
+                Object.keys(info).forEach(src => {
+                    const filtered = results
+                        .filter(d => d.source === src)
+                        .sort((a, b) => a.p_value - b.p_value)
+                        .slice(0, 15);
+
+                    const canvas = document.getElementById('chart_' + src.replace(':', '_'));
+                    if (!canvas) return;
+
+                    const ctx = canvas.getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: filtered.map(d => d.name.length > 50 ? d.name.substring(0,47)+'...' : d.name),
+                            datasets: [{
+                                label: '-log10(p-adj)',
+                                data: filtered.map(d => -Math.log10(d.p_value)),
+                                backgroundColor: info[src].color,
+                                borderRadius: 5
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { 
+                                title: { display: true, text: info[src].title, font: { size: 16 } },
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: '-log10(p-adjusted)' }, beginAtZero: true }
+                            }
+                        }
+                    });
+                });
+            };
+        <\/script>
+    </body>
+    </html>`;
+
+    win.document.write(htmlContent);
+    win.document.close();
+}
+
+
+//dPSI Integration V3.1.0
+
+function showSection(sectionId) {
+    // Masquer les vues standards
+    document.getElementById('viewGlobal').style.display = 'none';
+    document.getElementById('viewSingle').style.display = 'none';
+    
+    // Masquer toutes les sections additionnelles
+    document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none');
+
+    const target = document.getElementById(sectionId);
+    if (target) {
+        // IMPORTANT: Utiliser flex pour que le layout sidebar/main fonctionne
+        target.style.display = 'flex'; 
+        if (sectionId === 'dpsi-correlations') {
+            initContextSelector();
+        }
+    }
+}
+
+function closeDpsiSection() {
+    // Retour à la vue globale par défaut
+    document.getElementById('dpsi-correlations').style.display = 'none';
+    document.getElementById('viewGlobal').style.display = 'block';
+    currentView = 'global';
+}
+
+function toggleDPSIMetric() {
+    currentDPSIMetric = (currentDPSIMetric === 'mean_dPSI') ? 'max_dPSI' : 'mean_dPSI';
+    document.getElementById('toggleMetric').textContent = `Using: ${currentDPSIMetric}`;
+    updateCorrelationPlots();
+}
+
+function initContextSelector() {
+    const container = document.getElementById('context-checkboxes');
+    if (!container) return;
+
+    // [CORRECTION] Directly use processedData
+    const availableContexts = [...new Set(processedData.map(d => d.Context))].sort();
+
+    // Save current session
+    const currentSelection = new Set(
+        Array.from(document.querySelectorAll('input[name="ctx-corr"]:checked')).map(i => i.value)
+    );
+
+    if (availableContexts.length === 0) {
+        container.innerHTML = '<p style="font-size:11px; color:#ef4444; text-align:center;">No data passed global filters.</p>';
+        return;
+    }
+
+    container.innerHTML = availableContexts.map(ctx => {
+        // Optionnal tick
+        const isChecked = currentSelection.has(ctx) ? 'checked' : '';
+        const color = getContextColor(ctx);
+        
+        return `
+        <label class="checkbox-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor:pointer;">
+            <input type="checkbox" name="ctx-corr" value="${ctx}" ${isChecked} onchange="updateCorrelationPlots()">
+            <span class="ctx-badge" style="background:${color}; color:white; padding:2px 8px; border-radius:10px; font-size:11px;">${ctx}</span>
+        </label>`;
+    }).join('');
+    
+    // If no current session:
+    if (currentSelection.size > 1) updateCorrelationPlots();
+}
+
+function updateCorrelationPlots() {
+    const checkedContexts = Array.from(document.querySelectorAll('input[name="ctx-corr"]:checked')).map(i => i.value);
+    const container = document.getElementById('plots-container');
+    if (!container) return;
+    
+    container.innerHTML = ''; // Reset visuel
+
+    if (checkedContexts.length < 2) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b; font-style: italic;">Select at least 2 contexts to generate comparisons.</div>';
+        return;
+    }
+
+    // [CORRECTION] On utilise processedData. C'est LA source de vérité filtrée.
+    // On ne garde que les lignes appartenant aux contextes cochés DANS la section dPSI.
+    const activeData = processedData.filter(d => checkedContexts.includes(d.Context));
+
+    console.log(`[dPSI] Processing ${activeData.length} filtered lines for contexts: ${checkedContexts.join(', ')}`);
+
+    let plotsGenerated = 0;
+    for (let i = 0; i < checkedContexts.length; i++) {
+        for (let j = i + 1; j < checkedContexts.length; j++) {
+            // La fonction createScatterPlot reste inchangée, elle sait gérer activeData
+            createScatterPlot(checkedContexts[i], checkedContexts[j], container, activeData);
+            plotsGenerated++;
+        }
+    }
+    
+    if (plotsGenerated === 0 || activeData.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ef4444;">No intersection data found for these contexts with current global filters.</div>';
+    }
+}
+
+function calculateCorrelation(x, y) {
+    const n = x.length;
+    if (n < 2) return { r: "0.000", r2: "0.000", slope: "0.000" };
+    
+    const muX = x.reduce((a, b) => a + b, 0) / n;
+    const muY = y.reduce((a, b) => a + b, 0) / n;
+    
+    let num = 0, denX = 0, denY = 0;
+    for (let i = 0; i < n; i++) {
+        const dx = x[i] - muX;
+        const dy = y[i] - muY;
+        num += dx * dy;
+        denX += dx * dx;
+        denY += dy * dy;
+    }
+    
+    const r = (denX === 0 || denY === 0) ? 0 : num / Math.sqrt(denX * denY);
+    const slope = (denX === 0) ? 0 : num / denX;
+    
+    return {
+        r: r.toFixed(3),
+        r2: (r * r).toFixed(3),
+        slope: slope.toFixed(3)
+    };
+}
+
+function createScatterPlot(ctx1, ctx2, container, subset) {
+    // Étape A : Création du Pivot { "roi_id": { "CtxA": val, "CtxB": val } }
+    const pivotData = {};
+    let debugCount1 = 0;
+    let debugCount2 = 0;
+
+    subset.forEach(r => {
+        // On ne traite que les lignes concernant nos deux contextes
+        if (r.Context !== ctx1 && r.Context !== ctx2) return;
+
+        const safeID = String(r.roi_id).trim();
+
+        if (!pivotData[safeID]) {
+            pivotData[safeID] = { 
+                // [CORRECTION] Utilisation de r.gene car c'est la clé standardisée dans parseData
+                symbol: r.gene || r.geneSymbol || "Unknown" 
+            };
+        }
+
+        const val = parseFloat(r[currentDPSIMetric]);
+        
+        if (!isNaN(val)) {
+            pivotData[safeID][r.Context] = val;
+            if (r.Context === ctx1) debugCount1++;
+            if (r.Context === ctx2) debugCount2++;
+        }
+    });
+
+    console.log(`[Pivot Debug] ${ctx1}: ${debugCount1} valid points | ${ctx2}: ${debugCount2} valid points collected.`);
+
+    // Étape B : Extraction des points qui existent dans LES DEUX contextes
+    const points = [];
+    const keys = Object.keys(pivotData);
+
+    keys.forEach(id => {
+        const roiData = pivotData[id];
+        if (roiData[ctx1] !== undefined && roiData[ctx2] !== undefined) {
+            points.push({ 
+                x: roiData[ctx1], 
+                y: roiData[ctx2],
+                gene: pivotData[id].symbol // [AJOUT] On stocke le gène dans le point
+            });
+        }
+    });
+
+    // --- SECTION DIAGNOSTIC ---
+    if (points.length === 0 && debugCount1 > 0 && debugCount2 > 0) {
+        container.innerHTML += `<div style="color:red; padding:10px;">Error: 0 Intersection between ${ctx1} and ${ctx2}.</div>`;
+        return;
+    }
+
+    if (points.length < 2) return;
+
+    // Étape C : Calculs et Affichage
+    const stats = calculateCorrelation(points.map(p => p.x), points.map(p => p.y));
+    const safeId = `chart_${ctx1}_${ctx2}`.replace(/[^a-z0-9]/gi, '_');
+
+    const card = document.createElement('div');
+    card.style.cssText = "background:white; border:1px solid #e2e8f0; border-radius:8px; padding:15px; height:400px; display:flex; flex-direction:column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);";
+    
+    card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:5px;">
+            <h4 style="font-size:13px; margin:0; color:#1e293b;">${ctx1} vs ${ctx2}</h4>
+            <span style="font-size:11px; color:#64748b; background:#f1f5f9; padding:2px 6px; border-radius:4px;">n = ${points.length}</span>
+        </div>
+        <div style="flex:1; position:relative; min-height:0;">
+            <canvas id="${safeId}"></canvas>
+        </div>
+        <div style="margin-top:10px; font-size:11px; display:flex; justify-content:space-between; background:#f8fafc; padding:8px; border-radius:4px; color:#475569;">
+            <span>R: <b style="color:#2563eb">${stats.r}</b></span>
+            <span>R²: <b>${stats.r2}</b></span>
+            <span>Slope: <b>${stats.slope}</b></span>
+        </div>
+    `;
+    container.appendChild(card);
+
+    new Chart(document.getElementById(safeId), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                data: points,
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 0.8)',
+                borderWidth: 1,
+                pointRadius: 3,
+                hoverRadius: 6, // Un peu plus gros au survol pour bien viser
+                hoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    min: -1,
+                    max: 1,
+                    title: { display: true, text: `${ctx1}`, font: { size: 10 } },
+                    grid: { color: '#f1f5f9' },
+                    ticks: { stepSize: 0.5 }
+                },
+                y: {
+                    min: -1,
+                    max: 1,
+                    title: { display: true, text: `${ctx2}`, font: { size: 10 } },
+                    grid: { color: '#f1f5f9' },
+                    ticks: { stepSize: 0.5 }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    cornerRadius: 4,
+                    displayColors: false,
+                    callbacks: {
+                        // [MODIF] Affichage du gène et des valeurs
+                        label: (context) => {
+                            const pt = context.raw;
+                            return `${pt.gene}: (${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>
